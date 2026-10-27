@@ -26,6 +26,9 @@ function esc(text) {
 function fmtDate(value) {
   return new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
+function fmtDay(value) {
+  return new Date(value).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
 function fmtTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
@@ -52,6 +55,38 @@ function teamChip(name, side) { return '<span class="chip ' + (side || '') + '">
 function formDots(form) {
   if (!form || form.length === 0) return '<span class="muted">-</span>';
   return '<span class="form">' + form.map(function (r) { return '<i class="f-' + r + '" title="' + r + '">' + r + '</i>'; }).join('') + '</span>';
+}
+
+// Tabs: <div class="tabbar" data-tabs="x"><button class="tab" data-tab="a">..</button></div> and
+// <section class="panel" data-panel="a">. The open tab is kept in the URL hash (#a) so links and reloads keep it.
+function setupTabs(bar, onShow) {
+  const buttons = Array.prototype.slice.call(bar.querySelectorAll('[data-tab]'));
+  const panels = Array.prototype.slice.call(document.querySelectorAll('[data-panel]'));
+  function show(name, push) {
+    if (!buttons.some(function (b) { return b.dataset.tab === name; })) name = buttons[0].dataset.tab;
+    buttons.forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); b.setAttribute('aria-selected', b.dataset.tab === name); });
+    panels.forEach(function (p) { p.hidden = p.dataset.panel !== name; });
+    if (push) history.replaceState(null, '', '#' + name);
+    if (onShow) onShow(name);
+  }
+  bar.addEventListener('click', function (e) {
+    const b = e.target.closest('[data-tab]');
+    if (b) show(b.dataset.tab, true);
+  });
+  show(window.location.hash.slice(1), false);
+  return show;
+}
+
+// Groups items into [{ key, items }] keeping first-seen order.
+function groupBy(items, keyFn) {
+  const groups = [];
+  const index = {};
+  items.forEach(function (item) {
+    const key = keyFn(item);
+    if (index[key] === undefined) { index[key] = groups.length; groups.push({ key: key, items: [] }); }
+    groups[index[key]].items.push(item);
+  });
+  return groups;
 }
 
 // ---- Cricket helpers (score.cricket comes from the server)
@@ -122,7 +157,9 @@ function renderNav() {
   function active(l) {
     if (l.live) return isLiveView;
     if (l.href === '/') return (path === '/' || path === '/index.html') && !isLiveView;
-    return path === l.href;
+    // detail pages light up their section
+    const section = { '/tournament.html': '/tournaments.html', '/team.html': '/teams.html', '/player.html': '/players.html', '/score.html': '/dashboard.html' }[path];
+    return path === l.href || section === l.href;
   }
 
   const side = document.createElement('aside');

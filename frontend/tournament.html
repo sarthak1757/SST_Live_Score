@@ -10,17 +10,34 @@
 <main>
   <div id="status"><div class="empty">Loading tournament...</div></div>
   <div id="content" hidden>
-    <h1 id="title"></h1>
-    <p class="muted" id="subtitle"></p>
-    <h2>Standings</h2>
-    <div id="standings"></div>
-    <p class="muted" style="margin-top:8px">Win = 3 points, draw = 1, loss = 0. Ties are split by goal difference (GD), then goals for (GF). Only finished group matches count. The top 4 go into the knockout bracket.</p>
-    <h2>Knockout bracket</h2>
-    <div id="bracket"></div>
-    <div id="bracket-admin"></div>
-    <div id="leaderboard"></div>
-    <h2>Matches</h2>
-    <div id="matches"></div>
+    <div class="page-head">
+      <div class="head-icon" id="head-icon"></div>
+      <div>
+        <h1 id="title"></h1>
+        <p class="muted" id="subtitle"></p>
+      </div>
+    </div>
+    <div class="tabbar" id="tabs" role="tablist">
+      <button class="tab" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="fixtures">Fixtures</button>
+      <button class="tab" data-tab="results">Results</button>
+      <button class="tab" data-tab="standings">Standings</button>
+      <button class="tab" data-tab="bracket">Bracket</button>
+      <button class="tab" data-tab="players">Top players</button>
+    </div>
+
+    <section class="panel" data-panel="overview"><div id="overview-box"></div></section>
+    <section class="panel" data-panel="fixtures" hidden><div id="fixtures-box"></div></section>
+    <section class="panel" data-panel="results" hidden><div id="results-box"></div></section>
+    <section class="panel" data-panel="standings" hidden>
+      <div id="standings-box"></div>
+      <p class="muted" style="margin-top:10px">Win = 3 points, draw = 1, loss = 0. Ties are split by goal difference (GD), then goals for (GF). Only finished group matches count; the top 4 (shaded) go into the knockout bracket. Form shows the last five results, oldest first.</p>
+    </section>
+    <section class="panel" data-panel="bracket" hidden>
+      <div id="bracket-box"></div>
+      <div id="bracket-admin"></div>
+    </section>
+    <section class="panel" data-panel="players" hidden><div id="leaderboard"></div></section>
   </div>
 </main>
 <script src="/js/api.js"></script>

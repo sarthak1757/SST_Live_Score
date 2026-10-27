@@ -283,3 +283,20 @@ body.app main > * { max-width: 1100px; }
   .topbar .who { display: none; }
 }
 @media (max-width: 560px) { .topbar .account a[href="/signup.html"] { display: none; } .controls { top: 62px; } }
+
+/* ---------- Page header + tabs (tournament / match / team / player) ---------- */
+.page-head { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }
+.page-head h1 { margin: 0 0 6px; }
+.page-head p { margin: 0; }
+.head-icon { width: 72px; height: 72px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex: none; }
+.tabbar { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin: 18px 0 20px; scrollbar-width: none; }
+.tabbar::-webkit-scrollbar { display: none; }
+.tabbar .tab { flex: none; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--muted); padding: 12px 14px; }
+.tabbar .tab:hover:not(:disabled) { background: transparent; color: var(--text); }
+.tabbar .tab.active { color: var(--pink); border-bottom-color: var(--pink); background: transparent; }
+.group-head { font-family: var(--font-body); font-size: .72rem; letter-spacing: .18em; color: var(--lime); margin: 22px 0 10px; font-weight: 700; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.two-col h2:first-child { margin-top: 18px; }
+table.standings tr.qualify td:first-child { box-shadow: inset 4px 0 0 var(--lime); }
+table.standings td.tname a { color: inherit; }
+@media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } .head-icon { width: 56px; height: 56px; font-size: 1.7rem; } }
