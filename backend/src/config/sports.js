@@ -7,42 +7,43 @@ const SPORTS = {
     // timed sports get a match clock: periods x periodMinutes
     timed: { periods: 2, periodMinutes: 30, periodName: 'half' },
     actions: {
-      goal: { label: 'Goal', points: 1 },
-      yellow: { label: 'Yellow card', points: 0, card: 'yellow' },
-      red: { label: 'Red card', points: 0, card: 'red' },
+      goal: { label: 'Goal', points: 1, stat: 'Goals' },
+      yellow: { label: 'Yellow card', points: 0, card: 'yellow', stat: 'Yellow cards' },
+      red: { label: 'Red card', points: 0, card: 'red', stat: 'Red cards' },
     },
   },
   basketball: {
     label: 'Basketball',
     timed: { periods: 4, periodMinutes: 10, periodName: 'quarter' },
     actions: {
-      point1: { label: '+1 (Free throw)', points: 1 },
-      point2: { label: '+2', points: 2 },
-      point3: { label: '+3', points: 3 },
+      point1: { label: '+1 (Free throw)', points: 1, stat: 'Free throws made' },
+      point2: { label: '+2', points: 2, stat: '2-pointers made' },
+      point3: { label: '+3', points: 3, stat: '3-pointers made' },
     },
   },
   volleyball: {
     label: 'Volleyball',
     sets: { bestOf: 3 },
     actions: {
-      point: { label: 'Point', points: 1 },
+      point: { label: 'Point', points: 1, stat: 'Points won' },
     },
   },
   badminton: {
     label: 'Badminton',
     sets: { bestOf: 3 },
     actions: {
-      point: { label: 'Point', points: 1 },
+      point: { label: 'Point', points: 1, stat: 'Points won' },
     },
   },
   kabaddi: {
     label: 'Kabaddi',
+    statMode: 'points', // stats tab shows points per action type (default: number of actions)
     timed: { periods: 2, periodMinutes: 20, periodName: 'half' },
     actions: {
-      raid: { label: 'Raid point', points: 1 },
-      tackle: { label: 'Tackle point', points: 1 },
-      bonus: { label: 'Bonus', points: 1 },
-      allout: { label: 'All-out', points: 2 },
+      raid: { label: 'Raid point', points: 1, stat: 'Raid points' },
+      tackle: { label: 'Tackle point', points: 1, stat: 'Tackle points' },
+      bonus: { label: 'Bonus', points: 1, stat: 'Bonus points' },
+      allout: { label: 'All-out', points: 2, stat: 'All-out points' },
     },
   },
   cricket: {

@@ -17,13 +17,24 @@
     </div>
     <div class="scoreboard" id="scoreboard"></div>
     <div class="reactions" id="reactions"></div>
-    <div id="sets"></div>
-    <div id="top-scorers"></div>
-    <h2>Live feed</h2>
-    <ul class="feed" id="feed"></ul>
-    <h2>Fan chat</h2>
-    <div id="comment-form"></div>
-    <ul class="feed comments" id="comments"><li class="muted">Loading comments...</li></ul>
+    <div class="tabbar" id="tabs" role="tablist">
+      <button class="tab" data-tab="summary">Summary</button>
+      <button class="tab" data-tab="lineups">Lineups</button>
+      <button class="tab" data-tab="stats">Stats</button>
+      <button class="tab" data-tab="h2h">Head-to-head</button>
+    </div>
+    <section class="panel" data-panel="summary">
+      <div id="sets"></div>
+      <div id="top-scorers"></div>
+      <h2>Timeline</h2>
+      <ul class="timeline" id="feed"></ul>
+      <h2>Fan chat</h2>
+      <div id="comment-form"></div>
+      <ul class="feed comments" id="comments"><li class="muted">Loading comments...</li></ul>
+    </section>
+    <section class="panel" data-panel="lineups" hidden><div id="lineups-box"><div class="empty">Loading lineups...</div></div></section>
+    <section class="panel" data-panel="stats" hidden><div id="stats-box"></div></section>
+    <section class="panel" data-panel="h2h" hidden><div id="h2h-box"><div class="empty">Loading head-to-head...</div></div></section>
   </div>
 </main>
 <script src="/js/api.js"></script>

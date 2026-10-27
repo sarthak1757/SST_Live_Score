@@ -8,6 +8,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
 const { computeScore, getWinner, undoLast, canTransition, isSentOff } = require('../services/scoring');
 const clock = require('../services/clock');
+const { headToHead } = require('../services/matchStats');
 const { buildSnapshot, listWithScores } = require('../services/snapshot');
 const sse = require('../services/sse');
 const Comment = require('../models/Comment');
@@ -305,6 +306,45 @@ router.delete(
     if (!removed) throw httpError(409, 'Match has just been started and cannot be deleted');
     await audit.record(req, 'match.delete', { match: removed._id, tournament: removed.tournament }, { summary: removed.teamA.name + ' vs ' + removed.teamB.name });
     res.json({ ok: true });
+  })
+);
+
+// GET /api/matches/:id/lineups (public) - both rosters with each player's contribution in this match
+router.get(
+  '/:id/lineups',
+  wrap(async (req, res) => {
+    const match = await findMatchOr404(req.params.id);
+    const tournament = await Tournament.findById(match.tournament).lean();
+    const events = await ScoreEvent.find({ match: match._id, player: { $ne: null } }).lean();
+    const perPlayer = {};
+    events.forEach(function (ev) {
+      const key = String(ev.player);
+      if (!perPlayer[key]) perPlayer[key] = { points: 0, actions: 0, yellow: 0, red: 0 };
+      if (ev.type === 'yellow') perPlayer[key].yellow++;
+      else if (ev.type === 'red') perPlayer[key].red++;
+      else { perPlayer[key].points += Number(ev.points) || 0; perPlayer[key].actions++; }
+    });
+    function lineup(teamRef) {
+      const team = tournament ? tournament.teams.find(function (t) { return String(t._id) === String(teamRef.id); }) : null;
+      const players = (team ? team.players : []).map(function (p) {
+        const st = perPlayer[String(p._id)] || { points: 0, actions: 0, yellow: 0, red: 0 };
+        return { id: p._id, name: p.name, jersey: p.jersey, points: st.points, actions: st.actions, yellow: st.yellow, red: st.red };
+      });
+      players.sort(function (x, y) { return x.jersey - y.jersey; });
+      return { team: teamRef.name, players: players };
+    }
+    res.json({ a: lineup(match.teamA), b: lineup(match.teamB) });
+  })
+);
+
+// GET /api/matches/:id/h2h (public) - past results between these two houses, any tournament or sport
+router.get(
+  '/:id/h2h',
+  wrap(async (req, res) => {
+    const match = await findMatchOr404(req.params.id);
+    const finished = await Match.find({ status: 'finished' }).sort({ finishedAt: -1 }).limit(1000);
+    const h = headToHead(finished, match.teamA.name, match.teamB.name, match._id);
+    res.json({ summary: h.summary, matches: await listWithScores(h.matches.slice(0, 20)) });
   })
 );
 

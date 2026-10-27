@@ -3,6 +3,7 @@ const ScoreEvent = require('../models/ScoreEvent');
 const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 const { computeScore, sortEvents, topPlayers } = require('./scoring');
 const { publicClock } = require('./clock');
+const { matchStats } = require('./matchStats');
 
 function publicMatch(m) {
   return {
@@ -59,7 +60,8 @@ async function buildSnapshot(match) {
     p.teamName = p.side === 'a' ? match.teamA.name : match.teamB.name;
     return p;
   });
-  return { match: publicMatch(match), score: score, events: buildFeed(match, events), topScorers: topScorers };
+  const stats = matchStats(events, match.sport, match.teamA.id, match.teamB.id, score);
+  return { match: publicMatch(match), score: score, events: buildFeed(match, events), topScorers: topScorers, stats: stats };
 }
 
 // For lists: attaches a main score to each match using ONE events query for all live matches.

@@ -100,7 +100,10 @@ function teamBlock(team, score, side, won, extra) {
     '<div class="sb-num" id="num-' + side + '">' + score + '</div>' + (extra || '') + '</div>';
 }
 
+let lastSnap = null;
+
 function render(snap) {
+  lastSnap = snap;
   const m = snap.match;
   const s = snap.score;
   document.title = (m.status === 'scheduled' ? '' : s.a + '-' + s.b + ' ') + m.teamA.name + ' vs ' + m.teamB.name + ' - SST Live';
@@ -176,20 +179,81 @@ function render(snap) {
   }
 
   // Event feed: "Red House +2 Raid point  12:03:44"
+  // Timeline: Team A events on the left, Team B on the right, set/innings ends in the middle.
   const feed = document.getElementById('feed');
   if (snap.events.length === 0) {
-    feed.innerHTML = '<li class="muted">No scoring events yet. Updates will appear here instantly.</li>';
+    feed.innerHTML = '<li class="tl tl-n"><span class="tl-body muted">No events yet. Updates appear here instantly.</span></li>';
   } else {
     feed.innerHTML = snap.events.map(function (ev) {
-      let text;
+      const side = ev.side || 'n';
+      const when = ev.minute ? ev.minute + "'" : fmtTime(ev.time).slice(0, 5);
+      let body;
       if (ev.teamName) {
-        text = minuteTag(ev) + cardIcon(ev.type) + teamChip(ev.teamName, ev.side) + '<strong>' + esc(ev.teamName) + '</strong> ' + (ev.playerName ? '<span class="muted">#' + ev.jersey + ' ' + esc(ev.playerName) + '</span> ' : '') +
-          (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label);
+        body = cardIcon(ev.type) + (ev.playerName ? '<strong>#' + ev.jersey + ' ' + esc(ev.playerName) + '</strong> ' : '<strong>' + esc(ev.teamName) + '</strong> ') +
+          (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label) +
+          (ev.playerName ? ' <span class="muted">' + esc(ev.teamName) + '</span>' : '');
       } else {
-        text = minuteTag(ev) + '\u23F1 ' + esc(ev.label);
+        body = '\u23F1 ' + esc(ev.label);
       }
-      return '<li><span>' + text + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
+      return '<li class="tl tl-' + side + '"><span class="tl-min">' + when + '</span><span class="tl-body">' + body + '</span></li>';
     }).join('');
+  }
+
+  // Stats tab
+  document.getElementById('stats-box').innerHTML = statsHtml(m, snap.stats || []);
+  if (currentTab === 'lineups') loadLineups();
+}
+
+function statsHtml(m, rows) {
+  if (rows.length === 0) return '<div class="empty">No stats yet.</div>';
+  return '<div class="card stats-card"><div class="stats-head"><span>' + teamChip(m.teamA.name, 'a') + esc(m.teamA.name) + '</span><span>' +
+    teamChip(m.teamB.name, 'b') + esc(m.teamB.name) + '</span></div>' + rows.map(function (r) {
+      const na = parseFloat(r.a) || 0;
+      const nb = parseFloat(r.b) || 0;
+      const total = na + nb;
+      const pa = total ? Math.round((na / total) * 100) : 50;
+      return '<div class="stat-row"><div class="stat-vals"><b class="' + (na > nb ? 'lead' : '') + '">' + esc(r.a) + '</b><span>' + esc(r.label) +
+        '</span><b class="' + (nb > na ? 'lead' : '') + '">' + esc(r.b) + '</b></div><div class="stat-bar' + (total ? '' : ' empty') + '"><i class="bar-a" style="width:' + pa + '%"></i><i class="bar-b" style="width:' + (100 - pa) + '%"></i></div></div>';
+    }).join('') + '</div>';
+}
+
+// ---- Lineups and head-to-head are loaded when their tab is opened
+let currentTab = 'summary';
+let lineupsLoading = false;
+
+async function loadLineups() {
+  if (lineupsLoading) return;
+  lineupsLoading = true;
+  const box = document.getElementById('lineups-box');
+  try {
+    const data = await api('GET', '/api/matches/' + encodeURIComponent(matchId) + '/lineups');
+    function col(side, l) {
+      const rows = l.players.length === 0 ? '<div class="empty small">No roster added for ' + esc(l.team) + '.</div>' :
+        '<ul class="lineup">' + l.players.map(function (p) {
+          return '<li><span class="jersey ' + side + '">' + p.jersey + '</span><a href="' + playerUrl(p) + '">' + esc(p.name) + '</a>' +
+            '<span class="contrib">' + (p.yellow ? '\uD83D\uDFE8'.repeat(p.yellow) : '') + (p.red ? '\uD83D\uDFE5' : '') + (p.points ? ' <span class="pts">' + p.points + '</span>' : '') + '</span></li>';
+        }).join('') + '</ul>';
+      return '<div class="card"><h3>' + teamChip(l.team, side) + esc(l.team) + '</h3>' + rows + '</div>';
+    }
+    box.innerHTML = '<div class="two-col">' + col('a', data.a) + col('b', data.b) + '</div><p class="muted">Numbers next to a player are their points in this match.</p>';
+  } catch (err) {
+    box.innerHTML = '<div class="msg error">' + esc(err.message) + '</div>';
+  }
+  lineupsLoading = false;
+}
+
+async function loadH2H() {
+  const box = document.getElementById('h2h-box');
+  try {
+    const data = await api('GET', '/api/matches/' + encodeURIComponent(matchId) + '/h2h');
+    const s = data.summary;
+    const m = lastSnap.match;
+    if (s.played === 0) { box.innerHTML = '<div class="empty">' + esc(m.teamA.name) + ' and ' + esc(m.teamB.name) + ' have not met before.</div>'; return; }
+    box.innerHTML = '<div class="h2h-summary"><div><b class="a">' + s.aWins + '</b><span>' + esc(m.teamA.name) + ' wins</span></div><div><b>' + s.draws +
+      '</b><span>Draws</span></div><div><b class="b">' + s.bWins + '</b><span>' + esc(m.teamB.name) + ' wins</span></div></div>' +
+      '<p class="muted">' + s.played + ' previous ' + (s.played === 1 ? 'meeting' : 'meetings') + ' across all tournaments and sports.</p>' + data.matches.map(matchCardHtml).join('');
+  } catch (err) {
+    box.innerHTML = '<div class="msg error">' + esc(err.message) + '</div>';
   }
 }
 
@@ -222,6 +286,11 @@ async function start() {
     statusBox.innerHTML = '';
     content.hidden = false;
     render(snap);
+    setupTabs(document.getElementById('tabs'), function (name) {
+      currentTab = name;
+      if (name === 'lineups') loadLineups();
+      if (name === 'h2h') loadH2H();
+    });
     renderCommentForm();
     loadComments();
     openStream();
