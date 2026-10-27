@@ -75,7 +75,7 @@ header.nav .muted { font-size: .7rem; letter-spacing: .08em; }
 form.card label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: .72rem; color: var(--muted); letter-spacing: .16em; text-transform: uppercase; }
 input, select, textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; background: var(--surface2); color: var(--text); }
 input:focus, select:focus, textarea:focus { border-color: var(--pink); outline: none; }
-input::placeholder, textarea::placeholder { color: #6a6a6a; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .6; }
 button, .btn { display: inline-block; padding: 11px 24px; border: 2px solid var(--pink); border-radius: 999px; background: transparent; color: var(--pink); font: inherit; font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background .15s, color .15s, transform .08s; }
 .btn:hover { text-decoration: none; background: var(--pink); color: var(--black); }
 button:hover:not(:disabled) { background: var(--pink); color: var(--black); }
