@@ -56,6 +56,21 @@ function showRoster() {
 rTournament.addEventListener('change', fillRosterTeams);
 rTeam.addEventListener('change', showRoster);
 
+document.getElementById('delete-team').addEventListener('click', async function () {
+  const out = document.getElementById('r-msg');
+  showMsg(out, '', '');
+  const team = currentTeam();
+  if (!team) { showMsg(out, 'error', 'No team selected.'); return; }
+  if (!(await confirmDialog('Delete ' + team.name + '?', 'The team and its players are removed from this tournament. This only works if it has no matches.', 'Yes, delete'))) return;
+  try {
+    const keepT = rTournament.value;
+    await api('DELETE', '/api/tournaments/' + keepT + '/teams/' + team.id);
+    await loadTournaments();
+    rTournament.value = keepT; fillRosterTeams();
+    showMsg(out, 'success', team.name + ' deleted.');
+  } catch (err) { showMsg(out, 'error', err.message); }
+});
+
 document.getElementById('roster-form').addEventListener('submit', async function (e) {
   e.preventDefault();
   const out = document.getElementById('r-msg');

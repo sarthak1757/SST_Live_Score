@@ -125,6 +125,27 @@ router.put(
   })
 );
 
+// DELETE /api/tournaments/:id/teams/:teamId (admin) - only a team with no matches can be removed
+router.delete(
+  '/:id/teams/:teamId',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id) || !mongoose.isValidObjectId(req.params.teamId)) throw httpError(400, 'Invalid id');
+    const tournament = await Tournament.findById(req.params.id);
+    if (!tournament) throw httpError(404, 'Tournament not found');
+    const team = tournament.teams.id(req.params.teamId);
+    if (!team) throw httpError(404, 'Team not found in this tournament');
+    const used = await Match.countDocuments({ tournament: tournament._id, $or: [{ 'teamA.id': team._id }, { 'teamB.id': team._id }] });
+    if (used > 0) throw httpError(409, team.name + ' has ' + used + ' match(es). Delete those matches first.');
+    const name = team.name;
+    team.deleteOne();
+    await tournament.save();
+    await audit.record(req, 'team.delete', { tournament: tournament._id }, { summary: 'Removed team ' + name });
+    res.json({ tournament: publicTournament(tournament) });
+  })
+);
+
 function createFixture(tournament, stage, teamA, teamB, when) {
   return Match.create({
     tournament: tournament._id,
