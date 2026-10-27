@@ -1,6 +1,6 @@
 # SST Live
 
-Demo video: <ADD VIDEO URL>
+Demo video: https://drive.google.com/file/d/17wnmLZFO8pRVbwc4fDS_k34aR8HzrZ63/view?usp=sharing
 
 A live scoring platform for SST inter-house tournaments. Scorers record points as they happen; everyone else watches scores, event feeds and standings update instantly - no login needed.
 
