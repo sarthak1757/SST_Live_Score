@@ -29,6 +29,13 @@ const matchSchema = new mongoose.Schema(
       clap: { type: Number, default: 0 },
       wow: { type: Number, default: 0 },
     },
+    // match clock (timed sports) - see services/clock.js
+    clock: {
+      state: { type: String, enum: ['not_started', 'running', 'paused', 'break', 'ended'], default: 'not_started' },
+      period: { type: Number, default: 0 },
+      elapsedMs: { type: Number, default: 0 },
+      runningSince: { type: Date, default: null },
+    },
     startedAt: Date,
     finishedAt: Date,
   },

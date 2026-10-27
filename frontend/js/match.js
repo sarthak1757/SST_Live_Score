@@ -132,9 +132,12 @@ function render(snap) {
   else if (m.status === 'scheduled') footer = 'Kick-off ' + fmtDate(m.scheduledAt);
   else if (isSetSport) footer = 'Sets won · Set ' + s.currentSet.number + ' in play: ' + s.currentSet.a + ' - ' + s.currentSet.b;
 
+  if (m.clock && m.status === 'live') footer = '<div data-clock></div>' + footer;
   document.getElementById('scoreboard').innerHTML =
     '<div class="sb-grid">' + teamBlock(m.teamA, showA, 'a', aWon, extraA) + '<div class="sb-dash">-</div>' + teamBlock(m.teamB, showB, 'b', bWon, extraB) + '</div>' +
     (footer ? '<div class="sb-footer">' + footer + '</div>' : '');
+
+  setClock(m.status === 'live' ? m.clock : null);
 
   // flash the number that changed
   if (last) {
@@ -180,10 +183,10 @@ function render(snap) {
     feed.innerHTML = snap.events.map(function (ev) {
       let text;
       if (ev.teamName) {
-        text = teamChip(ev.teamName, ev.side) + '<strong>' + esc(ev.teamName) + '</strong> ' + (ev.playerName ? '<span class="muted">#' + ev.jersey + ' ' + esc(ev.playerName) + '</span> ' : '') +
+        text = minuteTag(ev) + cardIcon(ev.type) + teamChip(ev.teamName, ev.side) + '<strong>' + esc(ev.teamName) + '</strong> ' + (ev.playerName ? '<span class="muted">#' + ev.jersey + ' ' + esc(ev.playerName) + '</span> ' : '') +
           (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label);
       } else {
-        text = '\u23F1 ' + esc(ev.label);
+        text = minuteTag(ev) + '\u23F1 ' + esc(ev.label);
       }
       return '<li><span>' + text + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
     }).join('');
@@ -193,9 +196,9 @@ function render(snap) {
 function openStream() {
   // EventSource reconnects by itself; the server sends a full snapshot on every (re)connect.
   const source = new EventSource(apiUrl('/api/matches/' + encodeURIComponent(matchId) + '/stream'));
-  source.addEventListener('open', function () { setConn('ok', 'Live'); });
+  source.addEventListener('open', function () { setConn('ok', 'Connected'); });
   source.addEventListener('snapshot', function (e) {
-    setConn('ok', 'Live');
+    setConn('ok', 'Connected');
     render(JSON.parse(e.data));
   });
   source.addEventListener('reactions', function (e) {

@@ -2,6 +2,7 @@
 const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 
 const WIN_POINTS = 3;
+const CARD_TYPES = ['yellow', 'red'];
 const DRAW_POINTS = 1;
 
 // Allowed status changes: scheduled -> live -> finished
@@ -264,6 +265,7 @@ function topPlayers(events) {
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
     if (!ev.player || ev.type === END_SET) continue;
+    if (CARD_TYPES.indexOf(ev.type) !== -1) continue; // cards are not scoring
     const key = String(ev.player);
     if (!map[key]) map[key] = { playerId: key, name: ev.playerName, jersey: ev.jersey, team: String(ev.team), points: 0, actions: 0 };
     map[key].points += Number(ev.points) || 0;
@@ -278,7 +280,16 @@ function topPlayers(events) {
   return rows;
 }
 
+// True when this player already got a red card in these events.
+function isSentOff(events, playerId) {
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].type === 'red' && String(events[i].player) === String(playerId)) return true;
+  }
+  return false;
+}
+
 module.exports = {
+  isSentOff,
   topPlayers,
   oversText,
   canTransition,

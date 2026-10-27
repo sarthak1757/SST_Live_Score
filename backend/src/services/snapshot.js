@@ -2,6 +2,7 @@
 const ScoreEvent = require('../models/ScoreEvent');
 const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 const { computeScore, sortEvents, topPlayers } = require('./scoring');
+const { publicClock } = require('./clock');
 
 function publicMatch(m) {
   return {
@@ -18,6 +19,7 @@ function publicMatch(m) {
     status: m.status,
     winner: m.winner,
     finalScore: m.finalScore,
+    clock: publicClock(m.clock, SPORTS[m.sport].timed, Date.now()),
     reactions: { fire: (m.reactions && m.reactions.fire) || 0, clap: (m.reactions && m.reactions.clap) || 0, wow: (m.reactions && m.reactions.wow) || 0 },
     startedAt: m.startedAt,
     finishedAt: m.finishedAt,
@@ -44,7 +46,7 @@ function buildFeed(match, events) {
       const action = SPORTS[match.sport].actions[ev.type];
       label = action ? action.label : ev.type;
     }
-    feed.push({ id: ev._id, type: ev.type, label: label, points: ev.points, side: side, teamName: teamName, playerName: ev.playerName || null, jersey: ev.jersey === undefined ? null : ev.jersey, time: ev.createdAt });
+    feed.push({ id: ev._id, type: ev.type, label: label, points: ev.points, side: side, teamName: teamName, playerName: ev.playerName || null, minute: ev.minute === undefined ? null : ev.minute, jersey: ev.jersey === undefined ? null : ev.jersey, time: ev.createdAt });
   }
   return feed;
 }

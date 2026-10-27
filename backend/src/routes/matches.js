@@ -6,7 +6,8 @@ const ScoreEvent = require('../models/ScoreEvent');
 const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
-const { computeScore, getWinner, undoLast, canTransition } = require('../services/scoring');
+const { computeScore, getWinner, undoLast, canTransition, isSentOff } = require('../services/scoring');
+const clock = require('../services/clock');
 const { buildSnapshot, listWithScores } = require('../services/snapshot');
 const sse = require('../services/sse');
 const Comment = require('../models/Comment');
@@ -212,6 +213,7 @@ router.post(
         const team = tournament ? tournament.teams.id(teamId) : null;
         const player = team ? team.players.id(req.body.player) : null;
         if (!player) throw httpError(400, "That player is not on this team's roster");
+        if (isSentOff(events, player._id)) throw httpError(400, '#' + player.jersey + ' ' + player.name + ' has been sent off');
         eventData.player = player._id;
         eventData.playerName = player.name;
         eventData.jersey = player.jersey;
@@ -219,6 +221,7 @@ router.post(
     }
 
     eventData.scorer = req.user.id;
+    if (config.timed) eventData.minute = clock.matchMinute(match.clock, config.timed, Date.now());
     await ScoreEvent.create(eventData);
     if (type === END_INNINGS) {
       await audit.record(req, 'innings.end', { match: match._id, tournament: match.tournament }, { summary: 'Innings ' + (score.cricket.current + 1) });
@@ -233,6 +236,37 @@ router.post(
       });
     }
     await respondAndBroadcast(res, match, 201);
+  })
+);
+
+// POST /api/matches/:id/clock (scorer/admin) { action: start | pause | resume | end_period }
+router.post(
+  '/:id/clock',
+  canScore,
+  wrap(async (req, res) => {
+    const action = req.body.action;
+    if (clock.ACTIONS.indexOf(action) === -1) throw httpError(400, 'Clock action must be start, pause, resume or end_period');
+    const match = await findMatchOr404(req.params.id);
+    const timed = SPORTS[match.sport].timed;
+    if (!timed) throw httpError(400, SPORTS[match.sport].label + ' does not use a match clock');
+    if (match.status !== 'live') throw httpError(409, 'The clock can only be used while the match is live');
+    const saved = match.clock || {};
+    const before = saved.state
+      ? { state: saved.state, period: saved.period || 0, elapsedMs: saved.elapsedMs || 0, runningSince: saved.runningSince || null }
+      : clock.initialClock();
+    const next = clock.applyClock(before, action, timed, Date.now());
+    // Conditional update: two scorers pressing at once cannot both apply.
+    // Matches created before the clock existed have no clock field, so "not started" also matches a missing value.
+    const stateFilter = before.state === 'not_started' ? { $in: ['not_started', null] } : before.state;
+    const periodFilter = before.period === 0 ? { $in: [0, null] } : before.period;
+    const updated = await Match.findOneAndUpdate(
+      { _id: match._id, status: 'live', 'clock.state': stateFilter, 'clock.period': periodFilter },
+      { clock: next },
+      { returnDocument: 'after' }
+    );
+    if (!updated) throw httpError(409, 'The clock just changed - refresh and try again');
+    await audit.record(req, 'clock.change', { match: match._id, tournament: match.tournament }, { summary: action.replace('_', ' ') + ' -> ' + clock.clockLabel(next, timed) });
+    await respondAndBroadcast(res, updated);
   })
 );
 

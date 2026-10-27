@@ -11,6 +11,7 @@ const scoreEventSchema = new mongoose.Schema(
     player: { type: mongoose.Schema.Types.ObjectId, default: null },
     playerName: { type: String, default: null },
     jersey: { type: Number, default: null },
+    minute: { type: Number, default: null }, // match minute from the clock (timed sports)
     scorer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: { createdAt: true, updatedAt: false } }

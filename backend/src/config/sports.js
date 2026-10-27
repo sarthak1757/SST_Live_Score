@@ -4,12 +4,17 @@
 const SPORTS = {
   football: {
     label: 'Football',
+    // timed sports get a match clock: periods x periodMinutes
+    timed: { periods: 2, periodMinutes: 30, periodName: 'half' },
     actions: {
       goal: { label: 'Goal', points: 1 },
+      yellow: { label: 'Yellow card', points: 0, card: 'yellow' },
+      red: { label: 'Red card', points: 0, card: 'red' },
     },
   },
   basketball: {
     label: 'Basketball',
+    timed: { periods: 4, periodMinutes: 10, periodName: 'quarter' },
     actions: {
       point1: { label: '+1 (Free throw)', points: 1 },
       point2: { label: '+2', points: 2 },
@@ -32,6 +37,7 @@ const SPORTS = {
   },
   kabaddi: {
     label: 'Kabaddi',
+    timed: { periods: 2, periodMinutes: 20, periodName: 'half' },
     actions: {
       raid: { label: 'Raid point', points: 1 },
       tackle: { label: 'Tackle point', points: 1 },

@@ -11,6 +11,7 @@ const ACTIONS = {
   'score.add': 'Scored',
   'set.end': 'Ended set',
   'innings.end': 'Ended innings',
+  'clock.change': 'Clock',
   'score.undo': 'Undid last action',
   'comment.delete': 'Deleted comment',
   'user.create': 'Created account',

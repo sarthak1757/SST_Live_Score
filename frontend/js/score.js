@@ -49,6 +49,28 @@ function render() {
   controls += '<button class="danger" id="btn-finish"' + (live && !busy ? '' : ' disabled') + '>\u23F9 Finish match</button>';
   document.getElementById('controls').innerHTML = controls;
 
+  // Match clock (football, basketball, kabaddi)
+  const clockBox = document.getElementById('clock-bar');
+  const c = m.clock;
+  if (c && live) {
+    const lastPeriod = c.period >= c.periods;
+    const endLabel = c.periods === 2 ? (c.period === 1 ? 'Half-time' : 'End 2nd half') : 'End Q' + c.period;
+    let btns = '';
+    if (c.state === 'not_started') btns = '<button class="success" data-clock-action="start">\u25B6 Start clock</button>';
+    else if (c.state === 'break') btns = '<button class="success" data-clock-action="start">\u25B6 Start ' + (c.periods === 2 ? '2nd half' : 'Q' + (c.period + 1)) + '</button>';
+    else if (c.state === 'running') btns = '<button class="secondary" data-clock-action="pause">\u23F8 Pause</button><button class="secondary" data-clock-action="end_period">' + (lastPeriod ? 'Stop clock (full time)' : endLabel) + '</button>';
+    else if (c.state === 'paused') btns = '<button class="success" data-clock-action="resume">\u25B6 Resume</button><button class="secondary" data-clock-action="end_period">' + (lastPeriod ? 'Stop clock (full time)' : endLabel) + '</button>';
+    clockBox.innerHTML = '<div class="clock-bar"><div data-clock class="clock-big">' + (c.state === 'not_started' ? '<span class="clock-label">Clock not started</span>' : '') + '</div><div class="clock-btns">' + btns + '</div></div>';
+    clockBox.querySelectorAll('[data-clock-action]').forEach(function (b) {
+      b.disabled = busy;
+      b.onclick = function () { call('POST', '/clock', { action: b.dataset.clockAction }, 'Clock: ' + b.textContent.replace(/^\W+/, '')); };
+    });
+    setClock(c.state === 'not_started' ? null : c);
+  } else {
+    clockBox.innerHTML = '';
+    setClock(null);
+  }
+
   // One column per team, buttons come from the sports config
   let pad = '';
   ['a', 'b'].forEach(function (side) {
@@ -60,7 +82,8 @@ function render() {
     const picker = roster.length === 0 || !batting ? '' : '<select class="player-pick" data-side="' + side + '"' + (canTap ? '' : ' disabled') + '><option value="">Player (optional)</option>' +
       roster.map(function (p) { return '<option value="' + p.id + '"' + (chosen[side] === p.id ? ' selected' : '') + '>#' + p.jersey + ' ' + esc(p.name) + '</option>'; }).join('') + '</select>';
     let actionButtons = Object.keys(config.actions).map(function (key) {
-      return '<button data-team="' + team.id + '" data-type="' + key + '"' + (canTap ? '' : ' disabled') + '>' + esc(config.actions[key].label) + '</button>';
+      const card = config.actions[key].card;
+      return '<button' + (card ? ' class="card-' + card + '"' : '') + ' data-team="' + team.id + '" data-type="' + key + '"' + (canTap ? '' : ' disabled') + '>' + cardIcon(key) + esc(config.actions[key].label) + '</button>';
     }).join('');
     let numText = s[side];
     if (config.cricket) {
@@ -92,7 +115,7 @@ function render() {
 
   const feed = document.getElementById('feed');
   feed.innerHTML = snap.events.length === 0 ? '<li class="muted">No actions yet.</li>' : snap.events.slice(0, 10).map(function (ev) {
-    return '<li><span>' + (ev.teamName ? esc(ev.teamName) + ' - ' : '') + (ev.playerName ? '#' + ev.jersey + ' ' + esc(ev.playerName) + ' · ' : '') + esc(ev.label) + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
+    return '<li><span>' + minuteTag(ev) + cardIcon(ev.type) + (ev.teamName ? esc(ev.teamName) + ' - ' : '') + (ev.playerName ? '#' + ev.jersey + ' ' + esc(ev.playerName) + ' · ' : '') + esc(ev.label) + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
   }).join('');
 
   // wire up buttons

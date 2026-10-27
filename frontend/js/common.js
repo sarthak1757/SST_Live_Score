@@ -89,6 +89,28 @@ function groupBy(items, keyFn) {
   return groups;
 }
 
+// ---- Match clock (timed sports). The server sends elapsedMs; we add the time since it arrived.
+let clockState = null;
+let clockReceivedAt = 0;
+function setClock(c) { clockState = c; clockReceivedAt = Date.now(); paintClock(); }
+function fmtClock(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+}
+function clockHtml(c) {
+  if (!c || c.state === 'not_started') return '';
+  const ms = c.offsetMinutes * 60000 + c.elapsedMs + (c.running ? Date.now() - clockReceivedAt : 0);
+  return '<span class="clock' + (c.running ? ' run' : '') + '">' + fmtClock(ms) + '</span> <span class="clock-label">' + esc(c.label) + '</span>';
+}
+function paintClock() {
+  document.querySelectorAll('[data-clock]').forEach(function (el) { el.innerHTML = clockHtml(clockState); });
+}
+setInterval(function () { if (clockState && clockState.running) paintClock(); }, 1000);
+
+// Small markers for the feed: minute and card icons.
+function minuteTag(ev) { return ev.minute ? '<span class="minute">' + ev.minute + "'</span> " : ''; }
+function cardIcon(type) { return type === 'yellow' ? '\uD83D\uDFE8 ' : type === 'red' ? '\uD83D\uDFE5 ' : ''; }
+
 // ---- Cricket helpers (score.cricket comes from the server)
 function cricketTotal(inn) { return inn.runs + '/' + inn.wickets; }
 

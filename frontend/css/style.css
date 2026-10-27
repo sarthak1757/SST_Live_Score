@@ -300,3 +300,16 @@ body.app main > * { max-width: 1100px; }
 table.standings tr.qualify td:first-child { box-shadow: inset 4px 0 0 var(--lime); }
 table.standings td.tname a { color: inherit; }
 @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } .head-icon { width: 56px; height: 56px; font-size: 1.7rem; } }
+
+/* ---------- Match clock + cards ---------- */
+.clock { font-family: var(--font-head); font-size: 1.6rem; color: var(--text); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.clock.run { color: var(--lime); }
+.clock-label { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; color: var(--pink); font-weight: 700; }
+.sb-footer [data-clock] { margin-bottom: 6px; }
+.clock-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px 16px; margin-bottom: 14px; }
+.clock-big .clock { font-size: 2.4rem; }
+.clock-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.minute { font-family: var(--font-head); color: var(--lime); margin-right: 4px; }
+.score-pad button.card-yellow:not(:disabled) { background: #facc15; color: var(--black); text-shadow: none; }
+.score-pad button.card-red:not(:disabled) { background: #ef4444; color: var(--black); text-shadow: none; }
+.score-pad button.card-yellow, .score-pad button.card-red { min-height: 48px; font-size: .8rem; }
