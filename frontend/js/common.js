@@ -155,7 +155,7 @@ function confirmDialog(title, text, okLabel) {
 }
 
 // Links to team and player pages (one place, so pages can change later).
-function teamUrl(name) { return '/teams.html?q=' + encodeURIComponent(name); }
+function teamUrl(name) { return '/team.html?name=' + encodeURIComponent(name); }
 function playerUrl(p) { return '/players.html?q=' + encodeURIComponent(p.name); }
 
 // App shell: left sidebar + top bar with global search. Built on every page.

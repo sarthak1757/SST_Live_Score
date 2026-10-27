@@ -1,6 +1,7 @@
 // Pure helpers for browsing and search across tournaments (houses, players, tournaments).
 const { SPORTS } = require('../config/sports');
 const { httpError } = require('../middleware/errors');
+const { recentForm, resultFor } = require('./scoring');
 
 function norm(text) {
   return String(text || '').trim().toLowerCase();
@@ -67,4 +68,29 @@ function search(tournaments, q, limit) {
   return { tournaments: tours, teams: teams, players: players };
 }
 
-module.exports = { houseSummaries, playerList, validateQuery, search, norm };
+// Which side ('a'/'b') a house played in a match, by name (case-insensitive), or null.
+function sideOfHouse(match, name) {
+  const n = norm(name);
+  if (norm(match.teamA.name) === n) return 'a';
+  if (norm(match.teamB.name) === n) return 'b';
+  return null;
+}
+
+// A house's record across every tournament and sport.
+function teamRecord(matches, name) {
+  const mine = matches.filter(function (m) { return sideOfHouse(m, name); });
+  const record = { played: 0, won: 0, drawn: 0, lost: 0 };
+  mine.forEach(function (m) {
+    if (m.status !== 'finished') return;
+    record.played++;
+    const r = resultFor(m, sideOfHouse(m, name));
+    if (r === 'W') record.won++;
+    else if (r === 'L') record.lost++;
+    else record.drawn++;
+  });
+  record.winRate = record.played ? Math.round((record.won / record.played) * 100) : 0;
+  record.form = recentForm(mine, function (m) { return sideOfHouse(m, name); }, 5);
+  return record;
+}
+
+module.exports = { houseSummaries, playerList, validateQuery, search, norm, sideOfHouse, teamRecord };

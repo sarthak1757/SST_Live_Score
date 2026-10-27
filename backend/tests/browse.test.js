@@ -31,3 +31,21 @@ describe('browse and search', () => {
     expect(validateQuery('  leo ')).toBe('leo');
   });
 });
+
+describe('team record', () => {
+  const { teamRecord, sideOfHouse } = require('../src/services/browse');
+  let d = 0;
+  const m = (a, b, winner, status) => ({ status: status || 'finished', teamA: { name: a }, teamB: { name: b }, winner, finishedAt: new Date(2026, 0, ++d) });
+
+  test('W/D/L, win rate and form across tournaments, matched case-insensitively', () => {
+    const matches = [m('Phoenix', 'Leo', 'a'), m('kong', 'PHOENIX', 'a'), m('Phoenix', 'Tusker', 'draw'), m('Leo', 'Kong', 'a'), m('Phoenix', 'Leo', null, 'live')];
+    const r = teamRecord(matches, 'phoenix');
+    expect(r).toMatchObject({ played: 3, won: 1, drawn: 1, lost: 1, winRate: 33 });
+    expect(r.form).toEqual(['W', 'L', 'D']);
+    expect(sideOfHouse(matches[1], 'Phoenix')).toBe('b');
+  });
+
+  test('a house with no finished matches has an empty record', () => {
+    expect(teamRecord([m('Leo', 'Kong', null, 'scheduled')], 'Leo')).toEqual({ played: 0, won: 0, drawn: 0, lost: 0, winRate: 0, form: [] });
+  });
+});

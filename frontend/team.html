@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>House - SST Live</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main>
+  <div id="status"><div class="empty">Loading house...</div></div>
+  <div id="content" hidden>
+    <div class="page-head">
+      <div class="head-icon">&#128737;</div>
+      <div>
+        <h1 id="title"></h1>
+        <p class="muted" id="subtitle"></p>
+      </div>
+    </div>
+    <div class="tabbar" id="tabs" role="tablist">
+      <button class="tab" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="squad">Squad</button>
+      <button class="tab" data-tab="fixtures">Fixtures</button>
+      <button class="tab" data-tab="results">Results</button>
+    </div>
+    <section class="panel" data-panel="overview"><div id="overview-box"></div></section>
+    <section class="panel" data-panel="squad" hidden><div id="squad-box"></div></section>
+    <section class="panel" data-panel="fixtures" hidden><div id="fixtures-box"></div></section>
+    <section class="panel" data-panel="results" hidden><div id="results-box"></div></section>
+  </div>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/team.js"></script>
+</body>
+</html>
