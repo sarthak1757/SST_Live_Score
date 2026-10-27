@@ -1,5 +1,7 @@
 # SST Live
 
+Demo video: <ADD VIDEO URL>
+
 A live scoring platform for SST inter-house tournaments. Scorers record points as they happen; everyone else watches scores, event feeds and standings update instantly - no login needed.
 
 ## Problem Statement
@@ -145,7 +147,7 @@ Secrets live in `.env`, which is git-ignored. Only `.env.example` is committed.
 
 ## Deployment
 
-Deployed on Render (free web service): **<add your live URL here>**
+Deployed on Render (free web service): **https://sst-live-score.onrender.com**
 
 1. Push the repo to GitHub.
 2. Render -> New -> Web Service -> pick the repo. Build command `npm install`, start command `npm start` (both run from the repo root).
