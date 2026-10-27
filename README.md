@@ -23,7 +23,8 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 4. **Public live view** - home page with live/upcoming/finished matches and status/sport filters; match page with real-time score + event feed (auto-reconnecting SSE); tournament page with standings (win 3, draw 1, loss 0).
 5. **Extras** - login rate limiting (8 failed attempts / 10 min), security headers, admin can create scorer accounts and delete scheduled matches, dark mode, animated score changes, live score in the browser tab title.
 6. **Players & stats** - admins add a roster (jersey no. + name) per team; scorers can optionally pick the player for each action (e.g. kabaddi raid point by #7). The match page shows top scorers and the feed names the player; the tournament page has a top-players leaderboard across all matches.
-7. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
+7. **Knockout brackets** - once all group matches are finished, the admin generates semifinals from the top 4 of the standings (SF1: 1st v 4th, SF2: 2nd v 3rd), then the final from the two winners. The tournament page shows a bracket view and the champion. Knockout matches cannot end in a draw.
+8. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
 |---|---|---|
@@ -86,10 +87,13 @@ package.json            root scripts only (start, seed, test) so Render settings
 | POST | `/api/tournaments`, `/api/matches`, `/api/auth/users` | admin |
 | DELETE | `/api/matches/:id` (scheduled only) | admin |
 | PUT | `/api/tournaments/:id/teams/:teamId/players` (replace roster) | admin |
+| POST | `/api/tournaments/:id/bracket`, `/api/tournaments/:id/bracket/final` | admin |
 | POST | `/api/matches/:id/start`, `/finish`, `/events` | admin, scorer |
 | DELETE | `/api/matches/:id/events/last` (undo) | admin, scorer |
 
 **Player stats:** `ScoreEvent` optionally stores `player`, `playerName` and `jersey` (copied from the roster, so stats survive roster edits). `topPlayers()` in `scoring.js` aggregates events into per-match top scorers and the tournament leaderboard, so Undo automatically corrects player stats too. The player is validated against the scoring team's roster.
+
+**Brackets:** a match has a `stage` (`group`, `sf1`, `sf2`, `final`). Standings only count `group` matches, so knockouts never change the league table. Seeding and finalist logic are pure functions in `src/services/bracket.js`. A partial unique index on `(tournament, stage)` stops a double-click from creating a stage twice.
 
 **Notes on rules:** for set sports the main score is *sets won*; a set cannot be ended while tied or empty; once a team has won 2 sets no more points are accepted and the scorer clicks Finish. Finishing early compares sets won (equal = draw) and ignores points in an unfinished set.
 

@@ -15,6 +15,8 @@ const matchSchema = new mongoose.Schema(
     sport: { type: String, required: true, enum: Object.keys(SPORTS) },
     teamA: teamRef,
     teamB: teamRef,
+    // 'group' = league match; sf1/sf2/final = knockout bracket
+    stage: { type: String, enum: ['group', 'sf1', 'sf2', 'final'], default: 'group' },
     scheduledAt: { type: Date, required: true },
     status: { type: String, enum: ['scheduled', 'live', 'finished'], default: 'scheduled', index: true },
     // set when finished: 'a', 'b' or 'draw'
@@ -25,5 +27,8 @@ const matchSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Each knockout stage can exist only once per tournament (stops double-click duplicates).
+matchSchema.index({ tournament: 1, stage: 1 }, { unique: true, partialFilterExpression: { stage: { $in: ['sf1', 'sf2', 'final'] } } });
 
 module.exports = mongoose.model('Match', matchSchema);

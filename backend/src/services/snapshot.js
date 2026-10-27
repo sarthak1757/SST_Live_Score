@@ -8,6 +8,7 @@ function publicMatch(m) {
     id: m._id,
     tournament: m.tournament,
     tournamentName: m.tournamentName,
+    stage: m.stage || 'group',
     sport: m.sport,
     sportLabel: SPORTS[m.sport].label,
     teamA: { id: m.teamA.id, name: m.teamA.name },

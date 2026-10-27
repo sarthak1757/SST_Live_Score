@@ -132,9 +132,13 @@ router.post(
     }
     const events = await ScoreEvent.find({ match: match._id }).lean();
     const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id);
+    const winner = getWinner(score);
+    if (match.stage !== 'group' && winner === 'draw') {
+      throw httpError(409, 'Knockout matches cannot end in a draw - keep scoring until there is a winner');
+    }
     const updated = await Match.findOneAndUpdate(
       { _id: match._id, status: 'live' },
-      { status: 'finished', finishedAt: new Date(), winner: getWinner(score), finalScore: { a: score.a, b: score.b } },
+      { status: 'finished', finishedAt: new Date(), winner: winner, finalScore: { a: score.a, b: score.b } },
       { returnDocument: 'after' }
     );
     if (!updated) throw httpError(409, 'Match was already finished');

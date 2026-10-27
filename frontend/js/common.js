@@ -103,11 +103,14 @@ function requireLogin(role) {
   return user;
 }
 
+const STAGE_LABELS = { sf1: 'Semifinal 1', sf2: 'Semifinal 2', final: 'Final' };
+function stageLabel(stage) { return STAGE_LABELS[stage] || ''; }
+
 // One match card used on the home and tournament pages.
 function matchCardHtml(m) {
   const hasScore = m.status !== 'scheduled';
   return '<a class="card link match-card" href="/match.html?id=' + m.id + '">' +
-    '<div class="mc-top"><span class="sport-tag">' + sportIcon(m.sport) + ' ' + esc(m.sportLabel) + ' · ' + esc(m.tournamentName) + '</span>' + statusBadge(m.status) + '</div>' +
+    '<div class="mc-top"><span class="sport-tag">' + sportIcon(m.sport) + ' ' + esc(m.sportLabel) + ' · ' + esc(m.tournamentName) + (stageLabel(m.stage) ? ' · <span class="stage">' + stageLabel(m.stage) + '</span>' : '') + '</span>' + statusBadge(m.status) + '</div>' +
     '<div class="mc-body"><div class="mc-team">' + teamChip(m.teamA.name, 'a') + esc(m.teamA.name) + '</div>' +
     '<div class="mc-score' + (hasScore ? '' : ' vs') + '">' + (hasScore ? m.score.a + ' - ' + m.score.b : 'vs') + '</div>' +
     '<div class="mc-team right">' + teamChip(m.teamB.name, 'b') + esc(m.teamB.name) + '</div></div>' +

@@ -8,6 +8,7 @@ const { wrap, httpError } = require('../middleware/errors');
 const ScoreEvent = require('../models/ScoreEvent');
 const { computeStandings, topPlayers } = require('../services/scoring');
 const { validateRoster } = require('../services/roster');
+const { seedSemifinals, finalists } = require('../services/bracket');
 const { listWithScores } = require('../services/snapshot');
 
 const router = express.Router();
@@ -39,7 +40,8 @@ router.get(
     if (!tournament) throw httpError(404, 'Tournament not found');
 
     const matches = await Match.find({ tournament: tournament._id }).sort({ scheduledAt: 1 });
-    const standings = computeStandings(tournament.teams, matches);
+    // League table only counts group matches - knockouts do not change it
+    const standings = computeStandings(tournament.teams, matches.filter(function (m) { return m.stage === 'group'; }));
     // Top players across all matches of this tournament
     const matchIds = matches.map(function (m) { return m._id; });
     const events = matchIds.length ? await ScoreEvent.find({ match: { $in: matchIds }, player: { $ne: null } }).lean() : [];
@@ -105,6 +107,73 @@ router.put(
     team.players = players;
     await tournament.save();
     res.json({ tournament: publicTournament(tournament) });
+  })
+);
+
+function createFixture(tournament, stage, teamA, teamB, when) {
+  return Match.create({
+    tournament: tournament._id,
+    tournamentName: tournament.name,
+    sport: tournament.sport,
+    stage: stage,
+    teamA: { id: teamA.id, name: teamA.name },
+    teamB: { id: teamB.id, name: teamB.name },
+    scheduledAt: when,
+  });
+}
+
+function parseWhen(value) {
+  if (value === undefined || value === null || value === '') return new Date();
+  const when = new Date(value);
+  if (isNaN(when.getTime())) throw httpError(400, 'Enter a valid date and time');
+  return when;
+}
+
+async function loadTournament(id) {
+  if (!mongoose.isValidObjectId(id)) throw httpError(400, 'Invalid tournament id');
+  const tournament = await Tournament.findById(id);
+  if (!tournament) throw httpError(404, 'Tournament not found');
+  return tournament;
+}
+
+// POST /api/tournaments/:id/bracket (admin) { scheduledAt? } - semifinals from the top 4 of the standings
+router.post(
+  '/:id/bracket',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const tournament = await loadTournament(req.params.id);
+    const when = parseWhen(req.body.scheduledAt);
+    const matches = await Match.find({ tournament: tournament._id });
+    if (matches.some(function (m) { return m.stage !== 'group'; })) throw httpError(409, 'The bracket has already been generated');
+    const group = matches.filter(function (m) { return m.stage === 'group'; });
+    if (group.length === 0 || group.some(function (m) { return m.status !== 'finished'; })) {
+      throw httpError(409, 'Finish all group matches before generating the bracket');
+    }
+    const fixtures = seedSemifinals(computeStandings(tournament.teams, group));
+    for (let i = 0; i < fixtures.length; i++) {
+      const f = fixtures[i];
+      await createFixture(tournament, f.stage, { id: f.a.teamId, name: f.a.name }, { id: f.b.teamId, name: f.b.name }, when);
+    }
+    res.status(201).json({ ok: true });
+  })
+);
+
+// POST /api/tournaments/:id/bracket/final (admin) { scheduledAt? } - winners of the two semifinals
+router.post(
+  '/:id/bracket/final',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const tournament = await loadTournament(req.params.id);
+    const when = parseWhen(req.body.scheduledAt);
+    const matches = await Match.find({ tournament: tournament._id, stage: { $in: ['sf1', 'sf2', 'final'] } });
+    if (matches.some(function (m) { return m.stage === 'final'; })) throw httpError(409, 'The final has already been generated');
+    const sf1 = matches.find(function (m) { return m.stage === 'sf1'; });
+    const sf2 = matches.find(function (m) { return m.stage === 'sf2'; });
+    const teams = finalists(sf1, sf2);
+    await createFixture(tournament, 'final', teams.a, teams.b, when);
+    res.status(201).json({ ok: true });
   })
 );
 
