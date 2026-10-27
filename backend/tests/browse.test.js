@@ -92,3 +92,15 @@ describe('date picker helpers (frontend/js/datepicker.js)', () => {
     expect(dpToIso(2026, 0, 1, 12, 30, true)).toBe('2026-01-01T12:30');
   });
 });
+
+describe('older tournaments without a roster field', () => {
+  const { rosterOf, houseSummaries, playerList } = require('../src/services/browse');
+  const legacy = [{ _id: 't', name: 'Old Cup', sport: 'kabaddi', teams: [{ _id: 'a', name: 'Phoenix' }, { _id: 'b', name: 'Leo', players: [] }] }];
+
+  test('a missing players field counts as an empty roster instead of crashing', () => {
+    expect(rosterOf(legacy[0].teams[0])).toEqual([]);
+    expect(rosterOf(undefined)).toEqual([]);
+    expect(houseSummaries(legacy).map((h) => [h.name, h.players])).toEqual([['Leo', 0], ['Phoenix', 0]]);
+    expect(playerList(legacy)).toEqual([]);
+  });
+});

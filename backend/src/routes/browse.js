@@ -66,7 +66,7 @@ router.get(
         if (browse.norm(team.name) !== browse.norm(house.name)) return;
         squads.push({
           tournamentId: t._id, tournamentName: t.name, sport: t.sport,
-          players: team.players.map(function (p) { return { id: p._id, name: p.name, jersey: p.jersey }; }).sort(function (a, b) { return a.jersey - b.jersey; }),
+          players: browse.rosterOf(team).map(function (p) { return { id: p._id, name: p.name, jersey: p.jersey }; }).sort(function (a, b) { return a.jersey - b.jersey; }),
         });
       });
     });

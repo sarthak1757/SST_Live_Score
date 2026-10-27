@@ -3,6 +3,12 @@ const { SPORTS } = require('../config/sports');
 const { httpError } = require('../middleware/errors');
 const { recentForm, resultFor } = require('./scoring');
 
+// A team's roster. Tournaments created before rosters existed have no "players" field,
+// and .lean() reads do not fill in schema defaults, so never assume it is there.
+function rosterOf(team) {
+  return (team && team.players) || [];
+}
+
 function norm(text) {
   return String(text || '').trim().toLowerCase();
 }
@@ -20,7 +26,7 @@ function houseSummaries(tournaments) {
       }
       const h = map[key];
       h.tournaments++;
-      h.players += (team.players || []).length;
+      h.players += rosterOf(team).length;
       const label = SPORTS[t.sport] ? SPORTS[t.sport].label : t.sport;
       if (h.sports.indexOf(label) === -1) h.sports.push(label);
     });
@@ -33,7 +39,7 @@ function playerList(tournaments) {
   const list = [];
   tournaments.forEach(function (t) {
     (t.teams || []).forEach(function (team) {
-      (team.players || []).forEach(function (p) {
+      rosterOf(team).forEach(function (p) {
         list.push({
           id: String(p._id), name: p.name, jersey: p.jersey,
           team: team.name, teamId: String(team._id),
@@ -120,4 +126,4 @@ function samePlayer(list, player) {
   return list.filter(function (p) { return norm(p.name) === norm(player.name) && norm(p.team) === norm(player.team); });
 }
 
-module.exports = { houseSummaries, playerList, validateQuery, search, norm, sideOfHouse, teamRecord, playerStats, samePlayer };
+module.exports = { rosterOf, houseSummaries, playerList, validateQuery, search, norm, sideOfHouse, teamRecord, playerStats, samePlayer };

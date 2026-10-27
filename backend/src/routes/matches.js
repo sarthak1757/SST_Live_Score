@@ -9,6 +9,7 @@ const { wrap, httpError } = require('../middleware/errors');
 const { computeScore, getWinner, undoLast, canTransition, isSentOff } = require('../services/scoring');
 const clock = require('../services/clock');
 const { headToHead } = require('../services/matchStats');
+const { rosterOf } = require('../services/browse');
 const { buildSnapshot, listWithScores } = require('../services/snapshot');
 const sse = require('../services/sse');
 const Comment = require('../models/Comment');
@@ -326,7 +327,7 @@ router.get(
     });
     function lineup(teamRef) {
       const team = tournament ? tournament.teams.find(function (t) { return String(t._id) === String(teamRef.id); }) : null;
-      const players = (team ? team.players : []).map(function (p) {
+      const players = rosterOf(team).map(function (p) {
         const st = perPlayer[String(p._id)] || { points: 0, actions: 0, yellow: 0, red: 0 };
         return { id: p._id, name: p.name, jersey: p.jersey, points: st.points, actions: st.actions, yellow: st.yellow, red: st.red };
       });
