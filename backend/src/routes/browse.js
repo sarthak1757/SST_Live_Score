@@ -7,6 +7,12 @@ const mongoose = require('mongoose');
 const ScoreEvent = require('../models/ScoreEvent');
 const { SPORTS } = require('../config/sports');
 const browse = require('../services/browse');
+const { publicPlayer } = require('../services/roster');
+
+// players without a jersey number go last
+function byJersey(a, b) {
+  return (a.jersey === null ? 1000 : a.jersey) - (b.jersey === null ? 1000 : b.jersey);
+}
 
 const router = express.Router();
 
@@ -65,8 +71,8 @@ router.get(
       t.teams.forEach(function (team) {
         if (browse.norm(team.name) !== browse.norm(house.name)) return;
         squads.push({
-          tournamentId: t._id, tournamentName: t.name, sport: t.sport,
-          players: browse.rosterOf(team).map(function (p) { return { id: p._id, name: p.name, jersey: p.jersey }; }).sort(function (a, b) { return a.jersey - b.jersey; }),
+          tournamentId: t._id, teamId: team._id, tournamentName: t.name, sport: t.sport,
+          players: browse.rosterOf(team).map(publicPlayer).sort(byJersey),
         });
       });
     });

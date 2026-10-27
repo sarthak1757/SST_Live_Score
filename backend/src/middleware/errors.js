@@ -19,6 +19,9 @@ function notFound(req, res) {
 // Last middleware: turns any error into a JSON response.
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Upload is too large (max 2 MB for files, 10 KB for forms)' });
+  }
   if (err.status) {
     return res.status(err.status).json({ error: err.message });
   }

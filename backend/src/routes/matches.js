@@ -215,10 +215,10 @@ router.post(
         const team = tournament ? tournament.teams.id(teamId) : null;
         const player = team ? team.players.id(req.body.player) : null;
         if (!player) throw httpError(400, "That player is not on this team's roster");
-        if (isSentOff(events, player._id)) throw httpError(400, '#' + player.jersey + ' ' + player.name + ' has been sent off');
+        if (isSentOff(events, player._id)) throw httpError(400, (player.jersey === null || player.jersey === undefined ? '' : '#' + player.jersey + ' ') + player.name + ' has been sent off');
         eventData.player = player._id;
         eventData.playerName = player.name;
-        eventData.jersey = player.jersey;
+        eventData.jersey = player.jersey === undefined ? null : player.jersey;
       }
     }
 
@@ -234,7 +234,7 @@ router.post(
         team: String(eventData.team) === String(match.teamA.id) ? match.teamA.name : match.teamB.name,
         points: eventData.points,
         label: config.actions[type].label,
-        player: eventData.playerName ? '#' + eventData.jersey + ' ' + eventData.playerName : null,
+        player: eventData.playerName ? (eventData.jersey === null ? '' : '#' + eventData.jersey + ' ') + eventData.playerName : null,
       });
     }
     await respondAndBroadcast(res, match, 201);
@@ -329,9 +329,9 @@ router.get(
       const team = tournament ? tournament.teams.find(function (t) { return String(t._id) === String(teamRef.id); }) : null;
       const players = rosterOf(team).map(function (p) {
         const st = perPlayer[String(p._id)] || { points: 0, actions: 0, yellow: 0, red: 0 };
-        return { id: p._id, name: p.name, jersey: p.jersey, points: st.points, actions: st.actions, yellow: st.yellow, red: st.red };
+        return { id: p._id, name: p.name, jersey: p.jersey === undefined ? null : p.jersey, points: st.points, actions: st.actions, yellow: st.yellow, red: st.red };
       });
-      players.sort(function (x, y) { return x.jersey - y.jersey; });
+      players.sort(function (x, y) { return (x.jersey === null ? 1000 : x.jersey) - (y.jersey === null ? 1000 : y.jersey); });
       return { team: teamRef.name, players: players };
     }
     res.json({ a: lineup(match.teamA), b: lineup(match.teamB) });

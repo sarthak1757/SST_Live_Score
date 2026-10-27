@@ -2,6 +2,7 @@
 const ACTIONS = {
   'tournament.create': 'Created tournament',
   'roster.update': 'Updated roster',
+  'roster.import': 'Imported roster',
   'bracket.semifinals': 'Generated semifinals',
   'bracket.final': 'Generated final',
   'match.create': 'Scheduled match',

@@ -7,7 +7,8 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
 const ScoreEvent = require('../models/ScoreEvent');
 const { computeStandings, topPlayers } = require('../services/scoring');
-const { validateRoster } = require('../services/roster');
+const { validateRoster, publicPlayer, adminPlayer, jerseyOwner } = require('../services/roster');
+const rosterImport = require('../services/rosterImport');
 const { seedSemifinals, finalists } = require('../services/bracket');
 const audit = require('../services/audit');
 const { listWithScores } = require('../services/snapshot');
@@ -17,7 +18,7 @@ const router = express.Router();
 function publicTournament(t) {
   const teams = [];
   for (let i = 0; i < t.teams.length; i++) {
-    const players = t.teams[i].players.map(function (p) { return { id: p._id, name: p.name, jersey: p.jersey }; });
+    const players = t.teams[i].players.map(publicPlayer);
     teams.push({ id: t.teams[i]._id, name: t.teams[i].name, players: players });
   }
   return { id: t._id, name: t.name, sport: t.sport, sportLabel: SPORTS[t.sport].label, overs: t.overs || null, teams: teams };
@@ -111,7 +112,13 @@ router.put(
     if (!tournament) throw httpError(404, 'Tournament not found');
     const team = tournament.teams.id(req.params.teamId);
     if (!team) throw httpError(404, 'Team not found in this tournament');
-    team.players = players;
+    // keep existing players (same name) so their ids and private details survive; others are added or removed
+    const old = team.players || [];
+    team.players = players.map(function (p) {
+      const hit = old.find(function (o) { return o.name.toLowerCase() === p.name.toLowerCase(); });
+      if (hit) { hit.jersey = p.jersey; return hit; }
+      return { name: p.name, jersey: p.jersey };
+    });
     await tournament.save();
     await audit.record(req, 'roster.update', { tournament: tournament._id }, { summary: team.name + ': ' + players.length + ' players' });
     res.json({ tournament: publicTournament(tournament) });
@@ -187,6 +194,77 @@ router.post(
     await createFixture(tournament, 'final', teams.a, teams.b, when);
     await audit.record(req, 'bracket.final', { tournament: tournament._id }, { summary: teams.a.name + ' v ' + teams.b.name });
     res.status(201).json({ ok: true });
+  })
+);
+
+// ---------- Roster import (admin only) ----------
+
+// POST /api/tournaments/:id/roster/import?filename=roster.xlsx[&confirm=1]   body: the raw file (application/octet-stream)
+// Without confirm=1 it only returns the preview. With confirm=1 it re-reads the same file and saves it.
+router.post(
+  '/:id/roster/import',
+  requireAuth,
+  requireRole('admin'),
+  express.raw({ type: 'application/octet-stream', limit: rosterImport.MAX_BYTES }),
+  wrap(async (req, res) => {
+    const tournament = await loadTournament(req.params.id);
+    const filename = typeof req.query.filename === 'string' ? req.query.filename.slice(0, 120) : '';
+    const sheets = rosterImport.parseWorkbook(req.body, filename); // validates type, size and content
+    const plan = rosterImport.planImport(sheets, tournament.teams);
+    const t = plan.totals;
+
+    if (req.query.confirm !== '1') return res.json({ plan: plan, applied: false });
+
+    if (t.add + t.update === 0 && t.newTeams === 0) throw httpError(400, 'Nothing to import - every row was skipped');
+    rosterImport.applyPlan(tournament, plan);
+    await tournament.save();
+    await audit.record(req, 'roster.import', { tournament: tournament._id }, {
+      summary: t.add + ' added, ' + t.update + ' updated, ' + t.skip + ' skipped, ' + t.newTeams + ' new teams (' + filename + ')',
+    });
+    res.json({ plan: plan, applied: true });
+  })
+);
+
+// GET /api/tournaments/:id/roster (admin) - full roster INCLUDING private details (mail, roll no., batch)
+router.get(
+  '/:id/roster',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const tournament = await loadTournament(req.params.id);
+    res.json({
+      teams: tournament.teams.map(function (team) {
+        return { id: team._id, name: team.name, house: team.house || null, players: team.players.map(adminPlayer) };
+      }),
+    });
+  })
+);
+
+// PUT /api/tournaments/:id/teams/:teamId/players/:playerId/jersey (admin) { jersey: 0-99 | null } - jersey numbers are unique per team
+router.put(
+  '/:id/teams/:teamId/players/:playerId/jersey',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const ids = [req.params.id, req.params.teamId, req.params.playerId];
+    if (!ids.every(function (id) { return mongoose.isValidObjectId(id); })) throw httpError(400, 'Invalid id');
+    const blank = req.body.jersey === null || req.body.jersey === '';
+    const jersey = blank ? null : Number(req.body.jersey);
+    if (!blank && (!Number.isInteger(jersey) || jersey < 0 || jersey > 99)) throw httpError(400, 'Jersey number must be a whole number from 0 to 99');
+
+    const tournament = await loadTournament(req.params.id);
+    const team = tournament.teams.id(req.params.teamId);
+    if (!team) throw httpError(404, 'Team not found in this tournament');
+    const player = team.players.id(req.params.playerId);
+    if (!player) throw httpError(404, 'Player not found');
+    if (jersey !== null) {
+      const owner = jerseyOwner(team, jersey, player._id);
+      if (owner) throw httpError(409, 'Jersey ' + jersey + ' is already used by ' + owner.name);
+    }
+    player.jersey = jersey;
+    await tournament.save();
+    await audit.record(req, 'roster.update', { tournament: tournament._id }, { summary: team.name + ': ' + player.name + ' -> ' + (jersey === null ? 'no jersey' : '#' + jersey) });
+    res.json({ player: publicPlayer(player) });
   })
 );
 
