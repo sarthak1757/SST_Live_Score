@@ -95,7 +95,7 @@ function setConn(kind, text) {
 }
 
 function teamBlock(team, score, side, won, extra) {
-  return '<div class="sb-team ' + (won ? 'won' : '') + '" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '">' +
+  return '<div class="sb-team ' + (won ? 'won' : '') + '" style="--team:' + (side === 'a' ? 'var(--blue)' : 'var(--lime)') + '">' +
     '<div class="sb-bar"></div><div class="sb-name">' + esc(team.name) + (won ? ' \uD83C\uDFC6' : '') + '</div>' +
     '<div class="sb-num" id="num-' + side + '">' + score + '</div>' + (extra || '') + '</div>';
 }

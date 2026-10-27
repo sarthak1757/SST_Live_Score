@@ -20,7 +20,7 @@ async function load() {
     statusBox.innerHTML = '';
     document.getElementById('content').hidden = false;
     document.title = t.name + ' - SST Live';
-    document.getElementById('title').textContent = t.name;
+    setTitle(document.getElementById('title'), t.name);
     document.getElementById('subtitle').textContent = t.sports.join(' \u00B7 ') + ' \u00B7 ' + t.tournaments + (t.tournaments === 1 ? ' tournament' : ' tournaments');
 
     const live = data.fixtures.filter(function (m) { return m.status === 'live'; });

@@ -14,7 +14,7 @@ async function load() {
     document.getElementById('content').hidden = false;
     document.title = p.name + ' - SST Live';
     document.getElementById('jersey').textContent = p.jersey;
-    document.getElementById('title').textContent = p.name;
+    setTitle(document.getElementById('title'), p.name);
     document.getElementById('subtitle').innerHTML = '<a href="' + teamUrl(p.team) + '">' + esc(p.team) + '</a> \u00B7 ' + t.tournaments + (t.tournaments === 1 ? ' tournament' : ' tournaments');
 
     document.getElementById('totals').innerHTML =

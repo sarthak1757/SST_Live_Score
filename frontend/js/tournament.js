@@ -113,7 +113,7 @@ async function load() {
     content.hidden = false;
     const t = data.tournament;
     document.title = t.name + ' - SST Live';
-    document.getElementById('title').textContent = t.name;
+    setTitle(document.getElementById('title'), t.name);
     document.getElementById('head-icon').textContent = sportIcon(t.sport);
     document.getElementById('subtitle').textContent = t.sportLabel + ' \u00B7 ' + t.teams.length + ' houses' + (t.overs ? ' \u00B7 ' + t.overs + ' overs per innings' : '');
 

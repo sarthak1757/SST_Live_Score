@@ -48,13 +48,20 @@ function statusBadge(status) {
 const SPORT_ICONS = { football: '\u26BD', basketball: '\uD83C\uDFC0', volleyball: '\uD83C\uDFD0', badminton: '\uD83C\uDFF8', kabaddi: '\uD83E\uDD3C', cricket: '\uD83C\uDFCF' };
 function sportIcon(sport) { return SPORT_ICONS[sport] || '\uD83C\uDFC5'; }
 
-// Colour chip: Team A is pink, Team B is lime (CSS classes .chip.a / .chip.b). No side = neutral grey.
+// Colour chip: Team A is cobalt, Team B is lime (CSS classes .chip.a / .chip.b). No side = neutral grey.
 function teamChip(name, side) { return '<span class="chip ' + (side || '') + '"></span>'; }
 
-// Last-5 form as coloured dots: W lime, D grey, L pink.
+// Last-5 form as coloured dots: W lime, D grey, L red.
 function formDots(form) {
   if (!form || form.length === 0) return '<span class="muted">-</span>';
   return '<span class="form">' + form.map(function (r) { return '<i class="f-' + r + '" title="' + r + '">' + r + '</i>'; }).join('') + '</span>';
+}
+
+// Sets a heading from data: the last word becomes the italic serif accent ("Inter-house Football <em>2026</em>").
+function setTitle(el, text) {
+  const words = String(text).trim().split(/\s+/);
+  const last = words.pop();
+  el.innerHTML = (words.length ? esc(words.join(' ')) + ' ' : '') + '<em>' + esc(last) + '</em>';
 }
 
 // Tabs: <div class="tabbar" data-tabs="x"><button class="tab" data-tab="a">..</button></div> and

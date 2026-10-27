@@ -92,7 +92,7 @@ function render() {
       if (!batting) actionButtons = '<div class="empty small">' + (s.cricket.battingSide ? 'Bowling' : 'Innings complete') + '</div>';
       else actionButtons = '<div class="cricket-pad">' + actionButtons + '</div>';
     }
-    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + picker + actionButtons + '</div>';
+    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--blue);--on-team:var(--on-blue)' : 'var(--lime);--on-team:var(--on-lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + picker + actionButtons + '</div>';
   });
   document.getElementById('pad').innerHTML = pad;
 
