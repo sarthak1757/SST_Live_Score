@@ -67,10 +67,11 @@ async function load() {
       const leader = anyPlayed && i === 0;
       rows += '<tr class="' + (leader ? 'leader' : '') + '"><td class="rank">' + (leader ? '\uD83D\uDC51' : i + 1) + '</td><td class="tname">' +
         teamChip(r.name) + esc(r.name) + '</td><td>' + r.played + '</td><td>' + r.won + '</td><td>' + r.drawn + '</td><td>' + r.lost +
-        '</td><td class="pts-cell">' + r.points + '</td></tr>';
+        '</td><td class="hide-sm">' + r.gf + '</td><td class="hide-sm">' + r.ga + '</td><td>' + (r.gd > 0 ? '+' : '') + r.gd +
+        '</td><td class="pts-cell">' + r.points + '</td><td class="hide-sm">' + formDots(r.form) + '</td></tr>';
     });
     document.getElementById('standings').innerHTML =
-      '<table class="standings"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      '<table class="standings"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th class="hide-sm">GF</th><th class="hide-sm">GA</th><th>GD</th><th>Pts</th><th class="hide-sm">Form</th></tr></thead><tbody>' + rows + '</tbody></table>';
 
     renderBracket(data);
 

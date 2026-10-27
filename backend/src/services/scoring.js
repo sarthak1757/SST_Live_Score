@@ -175,24 +175,56 @@ function getWinner(score) {
   return 'draw';
 }
 
+// 'W', 'D' or 'L' for one side ('a' or 'b') of a finished match.
+function resultFor(match, side) {
+  if (match.winner === 'draw' || !match.winner) return 'D';
+  return match.winner === side ? 'W' : 'L';
+}
+
+// Time used to order results (oldest first).
+function matchTime(m) {
+  return new Date(m.finishedAt || m.scheduledAt || 0).getTime();
+}
+
+// Last `count` results (oldest -> newest) for a team from a list of finished matches.
+// isSide(match) returns 'a', 'b' or null for that team.
+function recentForm(matches, isSide, count) {
+  const played = matches.filter(function (m) { return m.status === 'finished' && isSide(m); });
+  played.sort(function (x, y) { return matchTime(x) - matchTime(y); });
+  return played.slice(-(count || 5)).map(function (m) { return resultFor(m, isSide(m)); });
+}
+
 // Build the standings table from the teams of a tournament and its matches.
-// Only matches with status "finished" are counted.
+// Only matches with status "finished" are counted. "Goals" are the main score
+// (goals, points, sets won or runs - whatever the sport uses).
+// Sorted by points, then goal difference, then goals for, then wins, then name.
 function computeStandings(teams, matches) {
   const table = {};
   for (let i = 0; i < teams.length; i++) {
     const id = String(teams[i]._id);
-    table[id] = { teamId: id, name: teams[i].name, played: 0, won: 0, drawn: 0, lost: 0, points: 0 };
+    table[id] = { teamId: id, name: teams[i].name, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, form: [] };
   }
 
-  for (let i = 0; i < matches.length; i++) {
-    const m = matches[i];
-    if (m.status !== 'finished') continue;
+  const finished = matches.filter(function (m) { return m.status === 'finished'; });
+  finished.sort(function (x, y) { return matchTime(x) - matchTime(y); });
+
+  for (let i = 0; i < finished.length; i++) {
+    const m = finished[i];
     const rowA = table[String(m.teamA.id)];
     const rowB = table[String(m.teamB.id)];
     if (!rowA || !rowB) continue;
 
+    const scoreA = m.finalScore && typeof m.finalScore.a === 'number' ? m.finalScore.a : 0;
+    const scoreB = m.finalScore && typeof m.finalScore.b === 'number' ? m.finalScore.b : 0;
     rowA.played++;
     rowB.played++;
+    rowA.gf += scoreA;
+    rowA.ga += scoreB;
+    rowB.gf += scoreB;
+    rowB.ga += scoreA;
+    rowA.form.push(resultFor(m, 'a'));
+    rowB.form.push(resultFor(m, 'b'));
+
     if (m.winner === 'a') {
       rowA.won++;
       rowA.points += WIN_POINTS;
@@ -209,9 +241,16 @@ function computeStandings(teams, matches) {
     }
   }
 
-  const rows = Object.keys(table).map(function (id) { return table[id]; });
+  const rows = Object.keys(table).map(function (id) {
+    const row = table[id];
+    row.gd = row.gf - row.ga;
+    row.form = row.form.slice(-5); // last five, oldest first
+    return row;
+  });
   rows.sort(function (x, y) {
     if (y.points !== x.points) return y.points - x.points;
+    if (y.gd !== x.gd) return y.gd - x.gd;
+    if (y.gf !== x.gf) return y.gf - x.gf;
     if (y.won !== x.won) return y.won - x.won;
     return x.name.localeCompare(y.name);
   });
@@ -249,6 +288,8 @@ module.exports = {
   computeScore,
   getWinner,
   computeStandings,
+  resultFor,
+  recentForm,
   WIN_POINTS,
   DRAW_POINTS,
 };

@@ -48,6 +48,12 @@ function sportIcon(sport) { return SPORT_ICONS[sport] || '\uD83C\uDFC5'; }
 // Colour chip: Team A is pink, Team B is lime (CSS classes .chip.a / .chip.b). No side = neutral grey.
 function teamChip(name, side) { return '<span class="chip ' + (side || '') + '"></span>'; }
 
+// Last-5 form as coloured dots: W lime, D grey, L pink.
+function formDots(form) {
+  if (!form || form.length === 0) return '<span class="muted">-</span>';
+  return '<span class="form">' + form.map(function (r) { return '<i class="f-' + r + '" title="' + r + '">' + r + '</i>'; }).join('') + '</span>';
+}
+
 // ---- Cricket helpers (score.cricket comes from the server)
 function cricketTotal(inn) { return inn.runs + '/' + inn.wickets; }
 
