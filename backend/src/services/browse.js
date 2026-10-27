@@ -93,4 +93,31 @@ function teamRecord(matches, name) {
   return record;
 }
 
-module.exports = { houseSummaries, playerList, validateQuery, search, norm, sideOfHouse, teamRecord };
+// One player's numbers in one tournament, from their score events.
+// breakdown: one row per action type with how many times and how many points.
+function playerStats(events, sport) {
+  const config = SPORTS[sport] || { actions: {} };
+  const stats = { matches: 0, points: 0, actions: 0, yellow: 0, red: 0, breakdown: [] };
+  const matches = {};
+  const byType = {};
+  events.forEach(function (ev) {
+    matches[String(ev.match)] = true;
+    if (ev.type === 'yellow') { stats.yellow++; return; }
+    if (ev.type === 'red') { stats.red++; return; }
+    stats.points += Number(ev.points) || 0;
+    stats.actions++;
+    if (!byType[ev.type]) byType[ev.type] = { label: config.actions[ev.type] ? config.actions[ev.type].label : ev.type, count: 0, points: 0 };
+    byType[ev.type].count++;
+    byType[ev.type].points += Number(ev.points) || 0;
+  });
+  stats.matches = Object.keys(matches).length;
+  stats.breakdown = Object.keys(byType).map(function (k) { return byType[k]; }).sort(function (a, b) { return b.points - a.points || b.count - a.count; });
+  return stats;
+}
+
+// Roster entries that are the same person: same name in the same house (any tournament).
+function samePlayer(list, player) {
+  return list.filter(function (p) { return norm(p.name) === norm(player.name) && norm(p.team) === norm(player.team); });
+}
+
+module.exports = { houseSummaries, playerList, validateQuery, search, norm, sideOfHouse, teamRecord, playerStats, samePlayer };

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player - SST Live</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main>
+  <div id="status"><div class="empty">Loading player...</div></div>
+  <div id="content" hidden>
+    <div class="page-head">
+      <div class="head-icon jersey-big" id="jersey"></div>
+      <div>
+        <h1 id="title"></h1>
+        <p class="muted" id="subtitle"></p>
+      </div>
+    </div>
+    <div class="stat-cards" id="totals"></div>
+    <h2>By tournament</h2>
+    <div id="per-tournament"></div>
+    <h2>Recent actions</h2>
+    <ul class="feed" id="recent"></ul>
+  </div>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/player.js"></script>
+</body>
+</html>

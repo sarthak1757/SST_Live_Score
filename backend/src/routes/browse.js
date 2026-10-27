@@ -3,6 +3,9 @@ const Tournament = require('../models/Tournament');
 const Match = require('../models/Match');
 const { wrap, httpError } = require('../middleware/errors');
 const { listWithScores } = require('../services/snapshot');
+const mongoose = require('mongoose');
+const ScoreEvent = require('../models/ScoreEvent');
+const { SPORTS } = require('../config/sports');
 const browse = require('../services/browse');
 
 const router = express.Router();
@@ -83,6 +86,39 @@ router.get(
   '/players',
   wrap(async (req, res) => {
     res.json({ players: browse.playerList(await allTournaments()) });
+  })
+);
+
+// GET /api/players/:id - a player with stats per tournament (same name + house counts as one player)
+router.get(
+  '/players/:id',
+  wrap(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) throw httpError(400, 'Invalid player id');
+    const all = browse.playerList(await allTournaments());
+    const player = all.find(function (p) { return p.id === String(req.params.id); });
+    if (!player) throw httpError(404, 'Player not found');
+
+    const entries = browse.samePlayer(all, player).sort(function (a, b) { return a.tournamentName.localeCompare(b.tournamentName); });
+    const events = await ScoreEvent.find({ player: { $in: entries.map(function (e) { return e.id; }) } }).sort({ createdAt: -1 }).lean();
+    const tournaments = entries.map(function (e) {
+      const mine = events.filter(function (ev) { return String(ev.player) === e.id; });
+      return {
+        tournamentId: e.tournamentId, tournamentName: e.tournamentName, sport: e.sport, sportLabel: SPORTS[e.sport].label,
+        jersey: e.jersey, playerId: e.id, stats: browse.playerStats(mine, e.sport),
+      };
+    });
+    const totals = browse.playerStats(events, player.sport);
+    const recent = events.slice(0, 10).map(function (ev) {
+      const entry = entries.find(function (e) { return e.id === String(ev.player); });
+      const action = SPORTS[entry.sport].actions[ev.type];
+      return { match: ev.match, label: action ? action.label : ev.type, points: ev.points, minute: ev.minute, type: ev.type, time: ev.createdAt, tournamentName: entry.tournamentName, sport: entry.sport };
+    });
+    res.json({
+      player: { id: player.id, name: player.name, jersey: player.jersey, team: player.team },
+      totals: { tournaments: entries.length, matches: totals.matches, points: totals.points, actions: totals.actions, yellow: totals.yellow, red: totals.red },
+      tournaments: tournaments,
+      recent: recent,
+    });
   })
 );
 

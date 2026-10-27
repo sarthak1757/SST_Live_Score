@@ -49,3 +49,27 @@ describe('team record', () => {
     expect(teamRecord([m('Leo', 'Kong', null, 'scheduled')], 'Leo')).toEqual({ played: 0, won: 0, drawn: 0, lost: 0, winRate: 0, form: [] });
   });
 });
+
+describe('player stats', () => {
+  const { playerStats, samePlayer } = require('../src/services/browse');
+
+  test('points, matches, cards and a per-action breakdown', () => {
+    const events = [
+      { match: 'm1', type: 'raid', points: 1 }, { match: 'm1', type: 'allout', points: 2 },
+      { match: 'm2', type: 'raid', points: 1 }, { match: 'm2', type: 'raid', points: 1 },
+    ];
+    const s = playerStats(events, 'kabaddi');
+    expect(s).toMatchObject({ matches: 2, points: 5, actions: 4, yellow: 0, red: 0 });
+    expect(s.breakdown).toEqual([{ label: 'Raid point', count: 3, points: 3 }, { label: 'All-out', count: 1, points: 2 }]);
+    const f = playerStats([{ match: 'x', type: 'goal', points: 1 }, { match: 'x', type: 'yellow', points: 0 }, { match: 'y', type: 'red', points: 0 }], 'football');
+    expect(f).toMatchObject({ matches: 2, points: 1, actions: 1, yellow: 1, red: 1 });
+  });
+
+  test('the same name in the same house across tournaments is one player', () => {
+    const list = [
+      { id: '1', name: 'Aman Rao', team: 'Phoenix' }, { id: '2', name: 'aman rao', team: 'PHOENIX' },
+      { id: '3', name: 'Aman Rao', team: 'Leo' }, { id: '4', name: 'Ravi', team: 'Phoenix' },
+    ];
+    expect(samePlayer(list, list[0]).map((p) => p.id)).toEqual(['1', '2']);
+  });
+});

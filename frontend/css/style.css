@@ -347,3 +347,6 @@ table.standings td.tname a { color: inherit; }
 .h2h-summary b.a { color: var(--pink); } .h2h-summary b.b { color: var(--lime); }
 .h2h-summary span { font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .stat-bar.empty i { background: var(--surface2); }
+
+.jersey-big { font-family: var(--font-head); font-size: 2.2rem; background: var(--pink); color: var(--black); border: 0; }
+a.plain { color: inherit; }

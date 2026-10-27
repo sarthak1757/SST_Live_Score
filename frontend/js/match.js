@@ -172,7 +172,7 @@ function render(snap) {
   if (snap.topScorers && snap.topScorers.length > 0) {
     topBox.innerHTML = '<h2>Top scorers</h2><table><thead><tr><th>Player</th><th>Team</th><th>Pts</th></tr></thead><tbody>' +
       snap.topScorers.map(function (p) {
-        return '<tr><td><strong>#' + p.jersey + '</strong> ' + esc(p.name) + '</td><td>' + teamChip(p.teamName, p.side) + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
+        return '<tr><td><a class="plain" href="' + playerUrl(p) + '"><strong>#' + p.jersey + '</strong> ' + esc(p.name) + '</a></td><td>' + teamChip(p.teamName, p.side) + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
       }).join('') + '</tbody></table>';
   } else {
     topBox.innerHTML = '';

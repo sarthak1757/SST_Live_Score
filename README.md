@@ -29,7 +29,12 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 8. **Fan engagement** - viewers react to a live match (🔥 👏 😮) without logging in; counts update live for everyone over SSE and are rate-limited per browser and per IP. Signed-in users chat under the match (max 200 characters, 3 per 30 s); admins can delete comments. Only the part of the email before "@" is shown publicly.
 9. **Follow houses** - anyone can sign up as a **fan** (self sign-up always creates the `fan` role, 5 sign-ups per hour per IP). Fans follow houses and get a **My feed** page with their houses' live and upcoming matches and results, across every sport. A house is matched by team name, case-insensitively, so following "Red" covers Red in football and in kabaddi. Fans can comment but cannot score or administer.
 10. **Audit log** - every scoring action, set end, undo, start/finish and admin change (tournament, roster, match create/delete, bracket, comment deletion, account creation) is recorded with who, what and when. Admins open the **Audit** page and view it per match or per tournament, e.g. "s@sst.edu - Undid last action: Blue Raid point (+1)".
-11. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
+11. **Sports-app layout** - left sidebar (Home, Live, Tournaments, Teams, Players, My Feed, Admin), a global search bar for teams, players and tournaments, and stat cards. The design takes inspiration from sports-score apps and learning dashboards, in its own pink/lime/black style; no third-party logos or designs are copied.
+12. **Tournament pages with tabs** - Overview, Fixtures (grouped by knockout round or day), Results, Standings (P W D L GF GA GD Pts, last-5 form dots; ties split by goal difference, then goals for), Bracket and Top players.
+13. **Match pages with tabs** - Summary (timeline with minute and player, Team A left / Team B right), Lineups (rosters with each player's contribution), Stats (per sport: football goals and cards, kabaddi raid/tackle/bonus/all-out points, basketball shots, cricket runs/wickets/overs/run rate/boundaries/extras) and Head-to-head (past results between the two houses across all sports).
+14. **Team and player pages** - a house's record, win rate, recent form, squads per tournament, fixtures and results; a player's stats per tournament with an action breakdown and recent actions.
+15. **Football cards and match clock** - yellow and red cards (a sent-off player cannot be given further actions; cards never count as scoring). Football, basketball and kabaddi get a clock with start, pause, resume and half-time / end of quarter; every event records its match minute.
+16. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
 |---|---|---|
@@ -62,6 +67,7 @@ Node.js, Express, MongoDB Atlas with Mongoose, JWT (`jsonwebtoken`) + `bcrypt`, 
 
 ```
 frontend/               static pages, CSS, browser JS - no build step, no package.json
+  js/common.js          app shell (sidebar, search), tabs, formatting helpers shared by every page
   js/api.js             the only file that talks to the backend (API_BASE = '' = same origin)
 backend/
   server.js             Express app: static files, route mounting, error handler
@@ -69,8 +75,8 @@ backend/
   package.json          backend dependencies and scripts
   src/config/sports.js  the single sports config object
   src/models/           User, Tournament, Match, ScoreEvent, Comment, AuditLog (Mongoose)
-  src/services/         scoring.js, bracket.js, roster.js, engagement.js, follows.js, rateLimit.js, audit.js (pure logic), snapshot.js, sse.js
-  src/routes/           auth, tournaments, matches, fans (houses, follows, feed), audit
+  src/services/         scoring.js, bracket.js, roster.js, engagement.js, follows.js, rateLimit.js, audit.js, clock.js, matchStats.js, browse.js (pure logic), snapshot.js, sse.js
+  src/routes/           auth, tournaments, matches, fans (houses, follows, feed), audit, browse (stats, search, teams, players)
   src/middleware/       requireAuth / requireRole, error handling
   tests/                Jest tests for the scoring logic
 package.json            root scripts only (start, seed, test) so Render settings stay simple
@@ -101,6 +107,9 @@ package.json            root scripts only (start, seed, test) so Render settings
 | GET / POST | `/api/matches/:id/comments` | GET public, POST any signed-in user |
 | DELETE | `/api/matches/:id/comments/:commentId` | admin |
 | GET | `/api/audit?match=` or `?tournament=` | admin |
+| GET | `/api/stats`, `/api/search?q=`, `/api/teams`, `/api/teams/:name`, `/api/players`, `/api/players/:id` | public |
+| GET | `/api/matches/:id/lineups`, `/api/matches/:id/h2h` | public |
+| POST | `/api/matches/:id/clock` `{ action: start, pause, resume or end_period }` | admin, scorer |
 | POST | `/api/matches/:id/start`, `/finish`, `/events` | admin, scorer |
 | DELETE | `/api/matches/:id/events/last` (undo) | admin, scorer |
 
@@ -115,6 +124,10 @@ package.json            root scripts only (start, seed, test) so Render settings
 **Audit log:** routes call `audit.record(req, action, { match, tournament }, details)` only after an action succeeds, so rejected requests (e.g. scoring a finished match) are never logged. Entries store the actor id and role; the email is joined in when admins read the log. `buildEntry()` only accepts known action names, and `describe()` turns an entry into a readable line. If writing the log fails, the error is reported in the server log but the scorer's action still goes through.
 
 **Cricket:** it uses the same event model. Every ball is a `ScoreEvent`, and `computeCricket()` in `scoring.js` replays them into runs, wickets and overs per innings. Wides and no-balls add a run but are not legal balls. An innings ends automatically when the side is all out (10 wickets), the overs run out, or the chase passes the target. The scorer can also end it early. Only the batting team can score; the API rejects the bowling side. The main score is runs, so `getWinner()`, standings, brackets, undo and SSE work unchanged. The result reads "won by N wickets" or "won by N runs". Extras are never credited to a batter in player stats.
+
+**Standings, form and head-to-head:** `computeStandings()` also adds goals for/against (the sport's main score: goals, points, sets or runs), goal difference and last-5 form (`recentForm()`, oldest first). `headToHead()` matches houses by name, case-insensitively, across every tournament and sport, and reports wins from the first team's point of view. A house page and the "same player" on a player page are also matched by name: a player is the same person when the name and house match.
+
+**Match clock:** a small state machine in `src/services/clock.js` (`not_started -> running <-> paused -> break -> ... -> ended`). Only the period, elapsed time and start time are stored. The server sends the elapsed time with every snapshot, and the browser ticks it forward locally, so a wrong phone clock never shows a wrong match time. Clock changes use a conditional update so two scorers cannot double-apply them. Matches created before the clock existed simply start with no clock.
 
 **Notes on rules:** for set sports the main score is *sets won*; a set cannot be ended while tied or empty; once a team has won 2 sets no more points are accepted and the scorer clicks Finish. Finishing early compares sets won (equal = draw) and ignores points in an unfinished set.
 
