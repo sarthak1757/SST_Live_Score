@@ -172,3 +172,14 @@ table.standings tr.leader .chip { background: var(--black); }
   .score-pad { gap: 8px; } .score-pad .team { padding: 14px 8px; } .score-pad .num { font-size: 4rem; } .score-pad button { min-height: 66px; }
   th, td { padding: 10px 6px; }
 }
+
+/* ---------- Home hero with soft blobs (pure CSS) ---------- */
+.hero { position: relative; padding: 34px 4px 20px; overflow: hidden; border-radius: 28px; isolation: isolate; }
+.blob { position: absolute; border-radius: 50%; filter: blur(48px); opacity: .55; z-index: -1; }
+.blob.b1 { width: 260px; height: 260px; background: var(--pink); top: -90px; right: -60px; }
+.blob.b2 { width: 220px; height: 220px; background: var(--lime); bottom: -110px; left: 8%; opacity: .4; }
+.blob.b3 { width: 140px; height: 140px; background: var(--pink); bottom: 10px; right: 22%; opacity: .3; }
+.eyebrow { margin: 0; font-size: .72rem; letter-spacing: .3em; text-transform: uppercase; color: var(--lime); font-weight: 600; }
+.hero-title { font-size: clamp(4.5rem, 21vw, 10rem); line-height: .9; margin: 10px 0 14px; color: var(--text); }
+.hero-title span { color: var(--pink); }
+.hero-sub { margin: 0; color: var(--text); max-width: 460px; font-size: 1.05rem; }

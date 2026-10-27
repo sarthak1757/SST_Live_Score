@@ -50,7 +50,7 @@ function render() {
     const actionButtons = Object.keys(config.actions).map(function (key) {
       return '<button data-team="' + team.id + '" data-type="' + key + '"' + (open ? '' : ' disabled') + '>' + esc(config.actions[key].label) + '</button>';
     }).join('');
-    pad += '<div class="team" style="--team:' + teamColor(team.name) + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + actionButtons + '</div>';
+    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + actionButtons + '</div>';
   });
   document.getElementById('pad').innerHTML = pad;
 

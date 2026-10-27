@@ -71,19 +71,8 @@ function statusBadge(status) {
 const SPORT_ICONS = { football: '\u26BD', basketball: '\uD83C\uDFC0', volleyball: '\uD83C\uDFD0', badminton: '\uD83C\uDFF8', kabaddi: '\uD83E\uDD3C' };
 function sportIcon(sport) { return SPORT_ICONS[sport] || '\uD83C\uDFC5'; }
 
-// Colour chip for a team: known house colours by name, otherwise a stable colour from the name.
-const HOUSE_COLORS = { red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308', orange: '#f97316', purple: '#a855f7', pink: '#ec4899', black: '#64748b', white: '#e5e7eb', maroon: '#9f1239', navy: '#1e40af', gold: '#f59e0b' };
-function teamColor(name) {
-  const lower = String(name).toLowerCase();
-  const keys = Object.keys(HOUSE_COLORS);
-  for (let i = 0; i < keys.length; i++) {
-    if (lower.indexOf(keys[i]) !== -1) return HOUSE_COLORS[keys[i]];
-  }
-  let hash = 0;
-  for (let i = 0; i < lower.length; i++) hash = (hash * 31 + lower.charCodeAt(i)) % 360;
-  return 'hsl(' + hash + ', 70%, 55%)';
-}
-function teamChip(name) { return '<span class="chip" style="background:' + teamColor(name) + '"></span>'; }
+// Colour chip: Team A is pink, Team B is lime (CSS classes .chip.a / .chip.b). No side = neutral grey.
+function teamChip(name, side) { return '<span class="chip ' + (side || '') + '"></span>'; }
 
 // Small pop-up message at the bottom of the screen. type: success | error
 function toast(type, text) {
@@ -123,7 +112,7 @@ function renderNav() {
   }
   const nav = document.createElement('header');
   nav.className = 'nav';
-  nav.innerHTML = '<a class="brand" href="/">\uD83C\uDFC6 SST Live</a><a href="/">Matches</a><span class="spacer"></span>' + right;
+  nav.innerHTML = '<a class="brand" href="/">SST LIVE</a><a href="/">Matches</a><span class="spacer"></span>' + right;
   document.body.prepend(nav);
   const link = document.getElementById('logout-link');
   if (link) link.addEventListener('click', function (e) { e.preventDefault(); logout(); });
@@ -145,9 +134,9 @@ function matchCardHtml(m) {
   const hasScore = m.status !== 'scheduled';
   return '<a class="card link match-card" href="/match.html?id=' + m.id + '">' +
     '<div class="mc-top"><span class="sport-tag">' + sportIcon(m.sport) + ' ' + esc(m.sportLabel) + ' · ' + esc(m.tournamentName) + '</span>' + statusBadge(m.status) + '</div>' +
-    '<div class="mc-body"><div class="mc-team">' + teamChip(m.teamA.name) + esc(m.teamA.name) + '</div>' +
+    '<div class="mc-body"><div class="mc-team">' + teamChip(m.teamA.name, 'a') + esc(m.teamA.name) + '</div>' +
     '<div class="mc-score' + (hasScore ? '' : ' vs') + '">' + (hasScore ? m.score.a + ' - ' + m.score.b : 'vs') + '</div>' +
-    '<div class="mc-team right">' + teamChip(m.teamB.name) + esc(m.teamB.name) + '</div></div>' +
+    '<div class="mc-team right">' + teamChip(m.teamB.name, 'b') + esc(m.teamB.name) + '</div></div>' +
     '<div class="muted" style="margin-top:10px">' + fmtDate(m.scheduledAt) + '</div></a>';
 }
 

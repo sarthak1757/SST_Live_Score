@@ -11,7 +11,7 @@ function setConn(kind, text) {
 }
 
 function teamBlock(team, score, side, won) {
-  return '<div class="sb-team ' + (won ? 'won' : '') + '" style="--team:' + teamColor(team.name) + '">' +
+  return '<div class="sb-team ' + (won ? 'won' : '') + '" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '">' +
     '<div class="sb-bar"></div><div class="sb-name">' + esc(team.name) + (won ? ' \uD83C\uDFC6' : '') + '</div>' +
     '<div class="sb-num" id="num-' + side + '">' + score + '</div></div>';
 }
@@ -55,8 +55,8 @@ function render(snap) {
       rows += '<tr class="inplay"><td>Set ' + s.currentSet.number + ' <span class="badge live"><span class="dot"></span>in play</span></td><td>' +
         s.currentSet.a + '</td><td>' + s.currentSet.b + '</td></tr>';
     }
-    setsBox.innerHTML = '<h2>Set scores</h2><table><thead><tr><th>Set</th><th>' + teamChip(m.teamA.name) + esc(m.teamA.name) +
-      '</th><th>' + teamChip(m.teamB.name) + esc(m.teamB.name) + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    setsBox.innerHTML = '<h2>Set scores</h2><table><thead><tr><th>Set</th><th>' + teamChip(m.teamA.name, 'a') + esc(m.teamA.name) +
+      '</th><th>' + teamChip(m.teamB.name, 'b') + esc(m.teamB.name) + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
   } else {
     setsBox.innerHTML = '';
   }
@@ -69,7 +69,7 @@ function render(snap) {
     feed.innerHTML = snap.events.map(function (ev) {
       let text;
       if (ev.teamName) {
-        text = teamChip(ev.teamName) + '<strong>' + esc(ev.teamName) + '</strong> ' +
+        text = teamChip(ev.teamName, ev.side) + '<strong>' + esc(ev.teamName) + '</strong> ' +
           (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label);
       } else {
         text = '\u23F1 ' + esc(ev.label);
