@@ -1,0 +1,106 @@
+const user = requireLogin();
+let tournaments = [];
+
+const tMsg = document.getElementById('t-msg');
+const mMsg = document.getElementById('m-msg');
+const matchSelect = document.getElementById('m-tournament');
+
+function fillSelect(select, items, valueKey, textKey) {
+  select.innerHTML = '';
+  items.forEach(function (item) {
+    const opt = document.createElement('option');
+    opt.value = item[valueKey];
+    opt.textContent = item[textKey];
+    select.appendChild(opt);
+  });
+}
+
+function fillTeamSelects() {
+  const t = tournaments.find(function (x) { return x.id === matchSelect.value; });
+  const teams = t ? t.teams : [];
+  fillSelect(document.getElementById('m-a'), teams, 'id', 'name');
+  fillSelect(document.getElementById('m-b'), teams, 'id', 'name');
+  if (teams.length > 1) document.getElementById('m-b').selectedIndex = 1;
+}
+
+async function loadTournaments() {
+  const data = await api('GET', '/api/tournaments');
+  tournaments = data.tournaments;
+  fillSelect(matchSelect, tournaments, 'id', 'name');
+  fillTeamSelects();
+}
+
+async function loadMatches() {
+  const box = document.getElementById('matches');
+  try {
+    const data = await api('GET', '/api/matches');
+    const open = data.matches.filter(function (m) { return m.status !== 'finished'; });
+    if (open.length === 0) {
+      box.innerHTML = '<div class="empty">No scheduled or live matches.' + (user.role === 'admin' ? ' Create one above.' : '') + '</div>';
+      return;
+    }
+    box.innerHTML = open.map(function (m) {
+      return '<div class="card row between"><div class="teams"><strong>' + esc(m.teamA.name) + '</strong> vs <strong>' + esc(m.teamB.name) +
+        '</strong><div class="muted">' + esc(m.sportLabel) + ' · ' + esc(m.tournamentName) + ' · ' + fmtDate(m.scheduledAt) + '</div></div>' +
+        statusBadge(m.status) + '<a class="btn" href="/score.html?id=' + m.id + '">' + (m.status === 'live' ? 'Continue scoring' : 'Open') + '</a></div>';
+    }).join('');
+  } catch (err) {
+    box.innerHTML = '<div class="msg error">' + esc(err.message) + '</div>';
+  }
+}
+
+async function init() {
+  if (!user) return;
+  if (user.role === 'admin') {
+    document.getElementById('admin-area').hidden = false;
+    try {
+      const sports = await api('GET', '/api/sports');
+      const list = Object.keys(sports.sports).map(function (k) { return { key: k, label: sports.sports[k].label }; });
+      fillSelect(document.getElementById('t-sport'), list, 'key', 'label');
+      await loadTournaments();
+    } catch (err) {
+      showMsg(document.getElementById('global-msg'), 'error', err.message);
+    }
+  }
+  loadMatches();
+}
+
+matchSelect.addEventListener('change', fillTeamSelects);
+
+document.getElementById('tournament-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  showMsg(tMsg, '', '');
+  const teams = document.getElementById('t-teams').value.split('\n');
+  try {
+    const data = await api('POST', '/api/tournaments', {
+      name: document.getElementById('t-name').value,
+      sport: document.getElementById('t-sport').value,
+      teams: teams,
+    });
+    showMsg(tMsg, 'success', 'Tournament "' + data.tournament.name + '" created.');
+    e.target.reset();
+    await loadTournaments();
+  } catch (err) {
+    showMsg(tMsg, 'error', err.message);
+  }
+});
+
+document.getElementById('match-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  showMsg(mMsg, '', '');
+  if (tournaments.length === 0) { showMsg(mMsg, 'error', 'Create a tournament first.'); return; }
+  try {
+    await api('POST', '/api/matches', {
+      tournament: matchSelect.value,
+      teamA: document.getElementById('m-a').value,
+      teamB: document.getElementById('m-b').value,
+      scheduledAt: new Date(document.getElementById('m-when').value).toISOString(),
+    });
+    showMsg(mMsg, 'success', 'Match scheduled.');
+    loadMatches();
+  } catch (err) {
+    showMsg(mMsg, 'error', err.message);
+  }
+});
+
+init();

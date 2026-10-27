@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scorer login - SST Live</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main style="max-width:420px">
+  <h1>Scorer login</h1>
+  <form class="card" id="login-form">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required>
+    <div id="msg"></div>
+    <button type="submit" id="submit" style="width:100%;margin-top:8px">Log in</button>
+  </form>
+  <p class="muted">Only admins and scorers need to log in. Viewers can <a href="/">watch matches</a> without an account.</p>
+</main>
+<script src="/js/common.js"></script>
+<script src="/js/login.js"></script>
+</body>
+</html>
