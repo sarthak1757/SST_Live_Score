@@ -2,10 +2,26 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
 
 const router = express.Router();
+
+// Simple in-memory brute-force protection: 8 failed logins per IP+email per 10 minutes.
+const failures = {};
+const MAX_FAILS = 8;
+const WINDOW_MS = 10 * 60 * 1000;
+function failKey(req, email) { return req.ip + '|' + email; }
+function isLocked(key) {
+  const f = failures[key];
+  if (!f) return false;
+  if (Date.now() - f.first > WINDOW_MS) { delete failures[key]; return false; }
+  return f.count >= MAX_FAILS;
+}
+function recordFail(key) {
+  if (!failures[key]) failures[key] = { count: 0, first: Date.now() };
+  failures[key].count++;
+}
 
 // POST /api/auth/login  { email, password } -> { token, user }
 router.post(
@@ -15,10 +31,16 @@ router.post(
     const password = typeof req.body.password === 'string' ? req.body.password : '';
     if (!email || !password) throw httpError(400, 'Email and password are required');
 
+    const key = failKey(req, email);
+    if (isLocked(key)) throw httpError(429, 'Too many failed attempts. Try again in a few minutes.');
     const user = await User.findOne({ email: email });
     // Same message for unknown email and wrong password so we don't reveal which accounts exist
     const ok = user ? await bcrypt.compare(password, user.passwordHash) : false;
-    if (!ok) throw httpError(401, 'Invalid email or password');
+    if (!ok) {
+      recordFail(key);
+      throw httpError(401, 'Invalid email or password');
+    }
+    delete failures[key];
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '12h' });
     res.json({ token: token, user: { email: user.email, role: user.role } });
@@ -33,6 +55,24 @@ router.get(
     const user = await User.findById(req.user.id);
     if (!user) throw httpError(401, 'Account no longer exists');
     res.json({ user: { email: user.email, role: user.role } });
+  })
+);
+
+// POST /api/auth/users (admin) { email, password, role } - create a scorer/admin account
+router.post(
+  '/users',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    const role = req.body.role === 'admin' ? 'admin' : 'scorer';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw httpError(400, 'Enter a valid email');
+    if (password.length < 8) throw httpError(400, 'Password must be at least 8 characters');
+    if (await User.findOne({ email: email })) throw httpError(409, 'An account with this email already exists');
+    const passwordHash = await bcrypt.hash(password, 10);
+    await User.create({ email: email, passwordHash: passwordHash, role: role });
+    res.status(201).json({ user: { email: email, role: role } });
   })
 );
 

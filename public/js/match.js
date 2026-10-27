@@ -3,6 +3,8 @@ const statusBox = document.getElementById('status');
 const content = document.getElementById('content');
 const connBadge = document.getElementById('conn');
 
+let lastScore = null;
+
 function setConn(kind, text) {
   connBadge.className = 'badge ' + kind;
   connBadge.textContent = text;
@@ -11,7 +13,7 @@ function setConn(kind, text) {
 function render(snap) {
   const m = snap.match;
   const s = snap.score;
-  document.title = m.teamA.name + ' vs ' + m.teamB.name + ' - SST Live';
+  document.title = (m.status === 'scheduled' ? '' : s.a + '-' + s.b + ' ') + m.teamA.name + ' vs ' + m.teamB.name + ' - SST Live';
   document.getElementById('meta').innerHTML =
     '<a href="/tournament.html?id=' + m.tournament + '">' + esc(m.tournamentName) + '</a> · ' + esc(m.sportLabel) + ' · ' + fmtDate(m.scheduledAt);
   document.getElementById('state').innerHTML = statusBadge(m.status);
@@ -28,6 +30,11 @@ function render(snap) {
     board += '<p class="muted">Not started yet</p>';
   }
   document.getElementById('scoreboard').innerHTML = board;
+  const key = s.a + '-' + s.b;
+  if (lastScore !== null && lastScore !== key) {
+    document.querySelectorAll('#scoreboard .num').forEach(function (n) { n.classList.add('pop'); });
+  }
+  lastScore = key;
 
   // Set-by-set scores (volleyball / badminton)
   const setsBox = document.getElementById('sets');

@@ -200,4 +200,18 @@ router.delete(
   })
 );
 
+// DELETE /api/matches/:id (admin) - cancel a match that has not started
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const match = await findMatchOr404(req.params.id);
+    if (match.status !== 'scheduled') throw httpError(409, 'Only scheduled matches can be deleted');
+    const removed = await Match.findOneAndDelete({ _id: match._id, status: 'scheduled' });
+    if (!removed) throw httpError(409, 'Match has just been started and cannot be deleted');
+    res.json({ ok: true });
+  })
+);
+
 module.exports = router;

@@ -42,8 +42,16 @@ async function loadMatches() {
     box.innerHTML = open.map(function (m) {
       return '<div class="card row between"><div class="teams"><strong>' + esc(m.teamA.name) + '</strong> vs <strong>' + esc(m.teamB.name) +
         '</strong><div class="muted">' + esc(m.sportLabel) + ' · ' + esc(m.tournamentName) + ' · ' + fmtDate(m.scheduledAt) + '</div></div>' +
-        statusBadge(m.status) + '<a class="btn" href="/score.html?id=' + m.id + '">' + (m.status === 'live' ? 'Continue scoring' : 'Open') + '</a></div>';
+        statusBadge(m.status) + '<a class="btn" href="/score.html?id=' + m.id + '">' + (m.status === 'live' ? 'Continue scoring' : 'Open') + '</a>' +
+        (user.role === 'admin' && m.status === 'scheduled' ? '<button class="danger" data-delete="' + m.id + '">Delete</button>' : '') + '</div>';
     }).join('');
+    box.querySelectorAll('[data-delete]').forEach(function (btn) {
+      btn.onclick = async function () {
+        if (!confirm('Delete this scheduled match?')) return;
+        try { await api('DELETE', '/api/matches/' + btn.dataset.delete); loadMatches(); }
+        catch (err) { showMsg(document.getElementById('global-msg'), 'error', err.message); }
+      };
+    });
   } catch (err) {
     box.innerHTML = '<div class="msg error">' + esc(err.message) + '</div>';
   }
@@ -104,3 +112,18 @@ document.getElementById('match-form').addEventListener('submit', async function 
 });
 
 init();
+
+document.getElementById('user-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const out = document.getElementById('u-msg');
+  showMsg(out, '', '');
+  try {
+    const data = await api('POST', '/api/auth/users', {
+      email: document.getElementById('u-email').value,
+      password: document.getElementById('u-pass').value,
+      role: document.getElementById('u-role').value,
+    });
+    showMsg(out, 'success', 'Created ' + data.user.role + ' account for ' + data.user.email);
+    e.target.reset();
+  } catch (err) { showMsg(out, 'error', err.message); }
+});

@@ -21,7 +21,8 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 2. **Tournaments and scheduling** (admin) - create a tournament with a sport and houses/teams, then schedule matches between them.
 3. **Live scoring** - Start, tap scoring buttons, Undo last action, End set (volleyball/badminton), Finish. Status flow is validated: `scheduled -> live -> finished`; you cannot score a finished match or finish a scheduled one.
 4. **Public live view** - home page with live/upcoming/finished matches and status/sport filters; match page with real-time score + event feed (auto-reconnecting SSE); tournament page with standings (win 3, draw 1, loss 0).
-5. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [src/config/sports.js](src/config/sports.js). Adding a sport means adding one entry.
+5. **Extras** - login rate limiting (8 failed attempts / 10 min), security headers, admin can create scorer accounts and delete scheduled matches, dark mode, animated score changes, live score in the browser tab title.
+6. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [src/config/sports.js](src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
 |---|---|---|
@@ -63,7 +64,8 @@ tests/                  Jest tests for the scoring logic
 | GET | `/api/matches?status=&sport=&tournament=` | public |
 | GET | `/api/matches/:id`, `/api/matches/:id/stream` (SSE) | public |
 | GET | `/api/tournaments`, `/api/tournaments/:id` (standings) | public |
-| POST | `/api/tournaments`, `/api/matches` | admin |
+| POST | `/api/tournaments`, `/api/matches`, `/api/auth/users` | admin |
+| DELETE | `/api/matches/:id` (scheduled only) | admin |
 | POST | `/api/matches/:id/start`, `/finish`, `/events` | admin, scorer |
 | DELETE | `/api/matches/:id/events/last` (undo) | admin, scorer |
 
@@ -83,7 +85,7 @@ npm start                 # http://localhost:3000
 npm test                  # run the Jest tests
 ```
 
-Extra scorer account: `node seed.js scorer@sst.edu SomePass123 scorer`
+Admins can also create scorer accounts from the Dashboard. CLI alternative: `node seed.js scorer@sst.edu SomePass123 scorer`
 
 ## Environment Variables
 
