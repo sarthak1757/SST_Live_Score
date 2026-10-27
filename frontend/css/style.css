@@ -387,3 +387,12 @@ a.plain { color: inherit; }
 .dp-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
 .dp-foot .muted { font-size: .78rem; }
 .dp-apply { padding: 8px 18px; }
+
+/* ---------- Roster import preview ---------- */
+.badge.ok { background: transparent; color: var(--text); border: 1px solid var(--lime); }
+.import-table td, .import-table th { text-align: left; font-size: .85rem; vertical-align: top; }
+.import-table td:first-child, .import-table th:first-child { width: 48px; color: var(--muted); }
+tr.row-skip td { opacity: .6; }
+.warn-line { color: var(--yellow); font-size: .8rem; margin-top: 2px; }
+.jersey-set { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+.jersey-set input { width: 72px; padding: 6px 8px; border-radius: 10px; }

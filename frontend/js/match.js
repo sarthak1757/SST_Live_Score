@@ -172,7 +172,7 @@ function render(snap) {
   if (snap.topScorers && snap.topScorers.length > 0) {
     topBox.innerHTML = '<h2>Top scorers</h2><table><thead><tr><th>Player</th><th>Team</th><th>Pts</th></tr></thead><tbody>' +
       snap.topScorers.map(function (p) {
-        return '<tr><td><a class="plain" href="' + playerUrl(p) + '"><strong>#' + p.jersey + '</strong> ' + esc(p.name) + '</a></td><td>' + teamChip(p.teamName, p.side) + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
+        return '<tr><td><a class="plain" href="' + playerUrl(p) + '">' + (p.jersey === null ? '' : '<strong>#' + p.jersey + '</strong> ') + esc(p.name) + '</a></td><td>' + teamChip(p.teamName, p.side) + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
       }).join('') + '</tbody></table>';
   } else {
     topBox.innerHTML = '';
@@ -189,7 +189,7 @@ function render(snap) {
       const when = ev.minute ? ev.minute + "'" : fmtTime(ev.time).slice(0, 5);
       let body;
       if (ev.teamName) {
-        body = cardIcon(ev.type) + (ev.playerName ? '<strong>#' + ev.jersey + ' ' + esc(ev.playerName) + '</strong> ' : '<strong>' + esc(ev.teamName) + '</strong> ') +
+        body = cardIcon(ev.type) + (ev.playerName ? '<strong>' + jerseyTag(ev.jersey) + esc(ev.playerName) + '</strong> ' : '<strong>' + esc(ev.teamName) + '</strong> ') +
           (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label) +
           (ev.playerName ? ' <span class="muted">' + esc(ev.teamName) + '</span>' : '');
       } else {
@@ -230,7 +230,7 @@ async function loadLineups() {
     function col(side, l) {
       const rows = l.players.length === 0 ? '<div class="empty small">No roster added for ' + esc(l.team) + '.</div>' :
         '<ul class="lineup">' + l.players.map(function (p) {
-          return '<li><span class="jersey ' + side + '">' + p.jersey + '</span><a href="' + playerUrl(p) + '">' + esc(p.name) + '</a>' +
+          return '<li><span class="jersey ' + side + '">' + jerseyNum(p.jersey) + '</span><a href="' + playerUrl(p) + '">' + esc(p.name) + '</a>' +
             '<span class="contrib">' + (p.yellow ? '\uD83D\uDFE8'.repeat(p.yellow) : '') + (p.red ? '\uD83D\uDFE5' : '') + (p.points ? ' <span class="pts">' + p.points + '</span>' : '') + '</span></li>';
         }).join('') + '</ul>';
       return '<div class="card"><h3>' + teamChip(l.team, side) + esc(l.team) + '</h3>' + rows + '</div>';

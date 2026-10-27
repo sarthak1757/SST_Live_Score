@@ -114,6 +114,10 @@ function paintClock() {
 }
 setInterval(function () { if (clockState && clockState.running) paintClock(); }, 1000);
 
+// Players can have no jersey number yet (null): show nothing, or a dash inside a badge.
+function jerseyTag(j) { return j === null || j === undefined ? '' : '#' + j + ' '; }
+function jerseyNum(j) { return j === null || j === undefined ? '\u2013' : j; }
+
 // Small markers for the feed: minute and card icons.
 function minuteTag(ev) { return ev.minute ? '<span class="minute">' + ev.minute + "'</span> " : ''; }
 function cardIcon(type) { return type === 'yellow' ? '\uD83D\uDFE8 ' : type === 'red' ? '\uD83D\uDFE5 ' : ''; }
@@ -236,7 +240,7 @@ function setupSearch() {
       const html =
         group('Tournaments', r.tournaments, function (t) { return '<a href="/tournament.html?id=' + t.id + '">' + sportIcon(t.sport) + ' ' + esc(t.name) + '</a>'; }) +
         group('Teams', r.teams, function (t) { return '<a href="' + teamUrl(t.name) + '">\uD83D\uDEE1 ' + esc(t.name) + ' <span class="muted">' + esc(t.sports.join(', ')) + '</span></a>'; }) +
-        group('Players', r.players, function (p) { return '<a href="' + playerUrl(p) + '">#' + p.jersey + ' ' + esc(p.name) + ' <span class="muted">' + esc(p.team) + ' \u00B7 ' + esc(p.tournamentName) + '</span></a>'; });
+        group('Players', r.players, function (p) { return '<a href="' + playerUrl(p) + '">' + jerseyTag(p.jersey) + esc(p.name) + ' <span class="muted">' + esc(p.team) + ' \u00B7 ' + esc(p.tournamentName) + '</span></a>'; });
       box.innerHTML = html || '<div class="sr-empty">No results for "' + esc(q) + '"</div>';
     } catch (err) {
       box.innerHTML = '<div class="sr-empty">' + esc(err.message) + '</div>';

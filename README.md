@@ -34,7 +34,8 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 13. **Match pages with tabs** - Summary (timeline with minute and player, Team A left / Team B right), Lineups (rosters with each player's contribution), Stats (per sport: football goals and cards, kabaddi raid/tackle/bonus/all-out points, basketball shots, cricket runs/wickets/overs/run rate/boundaries/extras) and Head-to-head (past results between the two houses across all sports).
 14. **Team and player pages** - a house's record, win rate, recent form, squads per tournament, fixtures and results; a player's stats per tournament with an action breakdown and recent actions.
 15. **Football cards and match clock** - yellow and red cards (a sent-off player cannot be given further actions; cards never count as scoring). Football, basketball and kabaddi get a clock with start, pause, resume and half-time / end of quarter; every event records its match minute.
-16. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
+16. **Roster import (admin)** - upload an `.xlsx` (or `.csv`, max 2 MB) where each tab is one team (tab name = team name, e.g. "Kong A") with the columns Name, SST mail, Roll No., Batch and an optional Jersey. The admin picks a tournament, sees a **preview** (per team: players to add, update or skip, with reasons and warnings) and then confirms. Teams are created if missing (house = the text before " A" / " B"); players are upserted by SST mail; ALL-CAPS names become Title Case; empty rows are skipped; duplicate mails and duplicate jersey numbers are flagged. Players without a jersey number can be given one later on the team page (unique per team).
+17. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
 |---|---|---|
@@ -75,8 +76,8 @@ backend/
   package.json          backend dependencies and scripts
   src/config/sports.js  the single sports config object
   src/models/           User, Tournament, Match, ScoreEvent, Comment, AuditLog (Mongoose)
-  src/services/         scoring.js, bracket.js, roster.js, engagement.js, follows.js, rateLimit.js, audit.js, clock.js, matchStats.js, browse.js (pure logic), snapshot.js, sse.js
-  src/routes/           auth, tournaments, matches, fans (houses, follows, feed), audit, browse (stats, search, teams, players)
+  src/services/         scoring.js, bracket.js, roster.js, engagement.js, follows.js, rateLimit.js, audit.js, clock.js, matchStats.js, browse.js, rosterImport.js (pure logic), snapshot.js, sse.js
+  src/routes/           auth, tournaments (incl. roster import), matches, fans (houses, follows, feed), audit, browse (stats, search, teams, players)
   src/middleware/       requireAuth / requireRole, error handling
   tests/                Jest tests for the scoring logic
 package.json            root scripts only (start, seed, test) so Render settings stay simple
@@ -109,6 +110,9 @@ package.json            root scripts only (start, seed, test) so Render settings
 | GET | `/api/audit?match=` or `?tournament=` | admin |
 | GET | `/api/stats`, `/api/search?q=`, `/api/teams`, `/api/teams/:name`, `/api/players`, `/api/players/:id` | public |
 | GET | `/api/matches/:id/lineups`, `/api/matches/:id/h2h` | public |
+| POST | `/api/tournaments/:id/roster/import?filename=&confirm=1` (raw file body; without `confirm` it only previews) | admin |
+| GET | `/api/tournaments/:id/roster` (includes private details) | admin |
+| PUT | `/api/tournaments/:id/teams/:teamId/players/:playerId/jersey` | admin |
 | POST | `/api/matches/:id/clock` `{ action: start, pause, resume or end_period }` | admin, scorer |
 | POST | `/api/matches/:id/start`, `/finish`, `/events` | admin, scorer |
 | DELETE | `/api/matches/:id/events/last` (undo) | admin, scorer |
@@ -128,6 +132,10 @@ package.json            root scripts only (start, seed, test) so Render settings
 **Standings, form and head-to-head:** `computeStandings()` also adds goals for/against (the sport's main score: goals, points, sets or runs), goal difference and last-5 form (`recentForm()`, oldest first). `headToHead()` matches houses by name, case-insensitively, across every tournament and sport, and reports wins from the first team's point of view. A house page and the "same player" on a player page are also matched by name: a player is the same person when the name and house match.
 
 **Match clock:** a small state machine in `src/services/clock.js` (`not_started -> running <-> paused -> break -> ... -> ended`). Only the period, elapsed time and start time are stored. The server sends the elapsed time with every snapshot, and the browser ticks it forward locally, so a wrong phone clock never shows a wrong match time. Clock changes use a conditional update so two scorers cannot double-apply them. Matches created before the clock existed simply start with no clock.
+
+**Roster import and privacy:** `src/services/rosterImport.js` is pure (parse -> plan -> apply), so the preview and the real import use exactly the same logic; "Confirm" re-uploads the same file and the server re-plans against the current data before saving. Lookups use `Map`, so odd tab names cannot pollute objects. Uploads are checked for extension, size, and file signature (an `.xlsx` must be a zip) before parsing, and the upload route requires an admin token *before* the body is read. **Private player details (SST mail, roll no., batch) are stored but never returned by a public route:** every public response builds players through `publicPlayer()` (id, name, jersey only); only `GET /api/tournaments/:id/roster` returns `adminPlayer()` data, and it is admin-only. The audit log records counts, not mails. A Jest test and an end-to-end check scan every public endpoint's raw JSON for mails and roll numbers.
+
+**Known limitation:** the `xlsx` package on npm (SheetJS 0.18.5) has published advisories (prototype pollution and ReDoS when parsing crafted files) and no fixed release on npm. Mitigations: admin-only upload, 2 MB limit, signature check, row/sheet limits, and Map-based lookups. For a stricter setup, install SheetJS from its own CDN build or parse the file in a separate worker.
 
 **Notes on rules:** for set sports the main score is *sets won*; a set cannot be ended while tied or empty; once a team has won 2 sets no more points are accepted and the scorer clicks Finish. Finishing early compares sets won (equal = draw) and ignores points in an unfinished set.
 

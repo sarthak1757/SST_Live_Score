@@ -13,7 +13,7 @@ async function load() {
     statusBox.innerHTML = '';
     document.getElementById('content').hidden = false;
     document.title = p.name + ' - SST Live';
-    document.getElementById('jersey').textContent = p.jersey;
+    document.getElementById('jersey').textContent = jerseyNum(p.jersey);
     setTitle(document.getElementById('title'), p.name);
     document.getElementById('subtitle').innerHTML = '<a href="' + teamUrl(p.team) + '">' + esc(p.team) + '</a> \u00B7 ' + t.tournaments + (t.tournaments === 1 ? ' tournament' : ' tournaments');
 
@@ -30,7 +30,7 @@ async function load() {
           return '<tr><td>' + esc(b.label) + '</td><td>' + b.count + '</td><td class="win-cell">' + b.points + '</td></tr>';
         }).join('') + '</tbody></table>';
       return '<div class="card"><div class="row between"><h3 style="margin:0"><a href="/tournament.html?id=' + row.tournamentId + '#players">' + sportIcon(row.sport) + ' ' + esc(row.tournamentName) + '</a></h3>' +
-        '<span class="muted">#' + row.jersey + ' \u00B7 ' + st.matches + (st.matches === 1 ? ' match' : ' matches') + ' \u00B7 <strong class="win-cell">' + st.points + '</strong> pts' +
+        '<span class="muted">' + (row.jersey === null ? 'No number' : '#' + row.jersey) + ' \u00B7 ' + st.matches + (st.matches === 1 ? ' match' : ' matches') + ' \u00B7 <strong class="win-cell">' + st.points + '</strong> pts' +
         (st.yellow ? ' \u00B7 ' + '\uD83D\uDFE8'.repeat(st.yellow) : '') + (st.red ? ' \uD83D\uDFE5' : '') + '</span></div><div style="margin-top:12px">' + breakdown + '</div></div>';
     }).join('');
 

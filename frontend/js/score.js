@@ -80,7 +80,7 @@ function render() {
     const batting = !config.cricket || (s.cricket.battingSide === side);
     const canTap = open && batting;
     const picker = roster.length === 0 || !batting ? '' : '<select class="player-pick" data-side="' + side + '"' + (canTap ? '' : ' disabled') + '><option value="">Player (optional)</option>' +
-      roster.map(function (p) { return '<option value="' + p.id + '"' + (chosen[side] === p.id ? ' selected' : '') + '>#' + p.jersey + ' ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+      roster.map(function (p) { return '<option value="' + p.id + '"' + (chosen[side] === p.id ? ' selected' : '') + '>' + jerseyTag(p.jersey) + esc(p.name) + '</option>'; }).join('') + '</select>';
     let actionButtons = Object.keys(config.actions).map(function (key) {
       const card = config.actions[key].card;
       return '<button' + (card ? ' class="card-' + card + '"' : '') + ' data-team="' + team.id + '" data-type="' + key + '"' + (canTap ? '' : ' disabled') + '>' + cardIcon(key) + esc(config.actions[key].label) + '</button>';
@@ -115,7 +115,7 @@ function render() {
 
   const feed = document.getElementById('feed');
   feed.innerHTML = snap.events.length === 0 ? '<li class="muted">No actions yet.</li>' : snap.events.slice(0, 10).map(function (ev) {
-    return '<li><span>' + minuteTag(ev) + cardIcon(ev.type) + (ev.teamName ? esc(ev.teamName) + ' - ' : '') + (ev.playerName ? '#' + ev.jersey + ' ' + esc(ev.playerName) + ' · ' : '') + esc(ev.label) + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
+    return '<li><span>' + minuteTag(ev) + cardIcon(ev.type) + (ev.teamName ? esc(ev.teamName) + ' - ' : '') + (ev.playerName ? jerseyTag(ev.jersey) + esc(ev.playerName) + ' · ' : '') + esc(ev.label) + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
   }).join('');
 
   // wire up buttons

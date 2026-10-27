@@ -34,10 +34,13 @@ describe('parsing tabs', () => {
 });
 
 describe('cleaning and skipping rows', () => {
-  test('ALL CAPS names become Title Case; mixed-case names are left alone; empty rows are ignored', () => {
+  test('shouting words become Title Case; normal words are left alone; empty rows are ignored', () => {
     expect(cleanName('  AMAN   RAO ')).toBe('Aman Rao');
     expect(cleanName("RAVI O'BRIEN-SMITH")).toBe("Ravi O'Brien-Smith");
     expect(cleanName('Aman McDonald')).toBe('Aman McDonald');
+    expect(cleanName('Dev IYER')).toBe('Dev Iyer'); // half-shouting names too
+    expect(cleanName('R K SHARMA')).toBe('R K Sharma'); // single-letter initials are left alone
+    expect(cleanName('Ravi das')).toBe('Ravi das'); // lower-case words are not touched
     const plan = planImport(parse({ 'Kong A': [HEADER, ['AMAN RAO', 'a@sst.edu', '1', '', ''], ['', '', '', '', ''], [], ['Ravi', '', '', '', '']] }), []);
     const rows = plan.teams[0].players;
     expect(rows.map((r) => [r.name, r.action, r.reason])).toEqual([['Aman Rao', 'add', ''], ['Ravi', 'skip', 'Missing SST mail']]);

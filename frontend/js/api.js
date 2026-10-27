@@ -10,14 +10,15 @@ function apiUrl(path) {
 }
 
 // fetch wrapper: returns parsed JSON or throws an Error with a readable message.
-async function api(method, url, body) {
-  const headers = { 'Content-Type': 'application/json' };
+// rawFile (optional): a File to upload as the request body instead of JSON.
+async function api(method, url, body, rawFile) {
+  const headers = { 'Content-Type': rawFile ? 'application/octet-stream' : 'application/json' };
   const token = getToken();
   if (token) headers.Authorization = 'Bearer ' + token;
 
   let response;
   try {
-    response = await fetch(apiUrl(url), { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+    response = await fetch(apiUrl(url), { method: method, headers: headers, body: rawFile ? rawFile : (body ? JSON.stringify(body) : undefined) });
   } catch (networkError) {
     throw new Error('Cannot reach the server. Check your internet connection and try again.');
   }

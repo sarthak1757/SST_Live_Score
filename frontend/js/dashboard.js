@@ -51,7 +51,7 @@ function fillRosterTeams() {
 }
 function showRoster() {
   const team = currentTeam();
-  rPlayers.value = team ? team.players.map(function (p) { return p.jersey + ' ' + p.name; }).join('\n') : '';
+  rPlayers.value = team ? team.players.map(function (p) { return (p.jersey === null ? '' : p.jersey + ' ') + p.name; }).join('\n') : '';
 }
 rTournament.addEventListener('change', fillRosterTeams);
 rTeam.addEventListener('change', showRoster);
@@ -67,8 +67,7 @@ document.getElementById('roster-form').addEventListener('submit', async function
     const line = lines[i].trim();
     if (!line) continue;
     const parts = line.match(/^(\d{1,2})\s+(.+)$/);
-    if (!parts) { showMsg(out, 'error', 'Line ' + (i + 1) + ': start with the jersey number, e.g. "7 Aman Sharma"'); return; }
-    players.push({ jersey: Number(parts[1]), name: parts[2] });
+    players.push(parts ? { jersey: Number(parts[1]), name: parts[2] } : { name: line }); // jersey number is optional
   }
   try {
     const keepT = rTournament.value, keepTeam = rTeam.value;

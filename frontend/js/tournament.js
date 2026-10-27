@@ -79,7 +79,7 @@ function leaderboardHtml(rows, limit) {
   if (rows.length === 0) return '<div class="empty small">No player stats yet. Scorers can pick a player for each action.</div>';
   return '<table><thead><tr><th>Player</th><th>House</th><th>Pts</th></tr></thead><tbody>' +
     rows.slice(0, limit || rows.length).map(function (p, i) {
-      return '<tr class="' + (i === 0 ? 'leader' : '') + '"><td><strong>' + (i + 1) + '.</strong> <a class="plain" href="' + playerUrl(p) + '">#' + p.jersey + ' ' + esc(p.name) + '</a></td><td>' + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
+      return '<tr class="' + (i === 0 ? 'leader' : '') + '"><td><strong>' + (i + 1) + '.</strong> <a class="plain" href="' + playerUrl(p) + '">' + jerseyTag(p.jersey) + esc(p.name) + '</a></td><td>' + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
     }).join('') + '</tbody></table>';
 }
 

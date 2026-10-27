@@ -29,14 +29,17 @@ function squash(text) {
   return String(text === undefined || text === null ? '' : text).replace(/\s+/g, ' ').trim();
 }
 
-// ALL CAPS names become Title Case; names that already have lower-case letters are left alone.
+// Shouting words become Title Case: "AMAN RAO" -> "Aman Rao", "Dev IYER" -> "Dev Iyer".
+// A word is shouting when it has 2+ letters and no lower-case ones, so initials ("R K Sharma") stay as typed.
 function cleanName(raw) {
-  const n = squash(raw);
-  const letters = n.replace(/[^A-Za-z]/g, '');
-  if (letters.length >= 2 && n === n.toUpperCase()) {
-    return n.toLowerCase().replace(/(^|[\s'\-.])([a-z])/g, function (m, before, ch) { return before + ch.toUpperCase(); });
-  }
-  return n;
+  return squash(raw)
+    .split(' ')
+    .map(function (word) {
+      const letters = word.replace(/[^A-Za-z]/g, '');
+      if (letters.length < 2 || word !== word.toUpperCase()) return word;
+      return word.toLowerCase().replace(/(^|['\-.])([a-z])/g, function (m, before, ch) { return before + ch.toUpperCase(); });
+    })
+    .join(' ');
 }
 
 // "Kong A" -> "Kong", "Leo B" -> "Leo", "Tusker" -> "Tusker"

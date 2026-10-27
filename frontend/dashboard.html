@@ -49,11 +49,28 @@
         <div style="flex:1;min-width:150px"><label for="r-tournament">Tournament</label><select id="r-tournament"></select></div>
         <div style="flex:1;min-width:150px"><label for="r-team">Team</label><select id="r-team"></select></div>
       </div>
-      <label for="r-players">Players - one per line: jersey number, then name</label>
+      <label for="r-players">Players - one per line: jersey number (optional), then name</label>
       <textarea id="r-players" rows="6" placeholder="7 Aman Sharma&#10;10 Ravi Kumar"></textarea>
       <div id="r-msg"></div>
       <button type="submit" style="margin-top:8px">Save roster</button>
     </form>
+
+    <h2>Import <em>roster</em></h2>
+    <form class="card" id="import-form">
+      <p class="muted" style="margin:0 0 6px">Upload an <strong>.xlsx</strong> where each tab is one team (the tab name is the team name, e.g. "Kong A") with the columns <strong>Name, SST mail, Roll No., Batch</strong> and an optional <strong>Jersey</strong>. Max 2 MB. A <strong>.csv</strong> counts as one team named after the file. You will see a preview before anything is saved.</p>
+      <label for="i-tournament">Tournament</label>
+      <select id="i-tournament"></select>
+      <label for="i-file">File (.xlsx or .csv)</label>
+      <input id="i-file" type="file" accept=".xlsx,.csv">
+      <div id="i-msg"></div>
+      <button type="submit" id="i-preview" style="margin-top:10px">Preview</button>
+    </form>
+    <div id="i-result"></div>
+    <div class="card row between" id="i-private-bar">
+      <span class="muted">Private details (SST mail, roll no., batch) are visible to admins only and are hidden until you show them.</span>
+      <button type="button" class="secondary" id="i-private-btn">Show private details</button>
+    </div>
+    <div id="i-private"></div>
 
     <h2>Add scorer account</h2>
     <form class="card" id="user-form">
@@ -73,5 +90,6 @@
 <script src="/js/common.js"></script>
 <script src="/js/datepicker.js"></script>
 <script src="/js/dashboard.js"></script>
+<script src="/js/rosterimport.js"></script>
 </body>
 </html>

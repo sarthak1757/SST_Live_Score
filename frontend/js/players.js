@@ -10,7 +10,7 @@ function render() {
   });
   if (shown.length === 0) { box.innerHTML = '<div class="empty">No player matches "' + esc(q) + '".</div>'; return; }
   box.innerHTML = '<table><thead><tr><th>Player</th><th>House</th><th class="hide-sm">Tournament</th></tr></thead><tbody>' + shown.map(function (p) {
-    return '<tr><td><a href="' + playerUrl(p) + '"><strong>#' + p.jersey + '</strong> ' + esc(p.name) + '</a></td><td>' + esc(p.team) +
+    return '<tr><td><a href="' + playerUrl(p) + '">' + (p.jersey === null ? '' : '<strong>#' + p.jersey + '</strong> ') + esc(p.name) + '</a></td><td>' + esc(p.team) +
       '</td><td class="hide-sm">' + sportIcon(p.sport) + ' ' + esc(p.tournamentName) + '</td></tr>';
   }).join('') + '</tbody></table>';
 }

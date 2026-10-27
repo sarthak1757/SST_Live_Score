@@ -8,6 +8,25 @@ function matchList(list, empty) {
   }).join('');
 }
 
+const isAdmin = !!(getUser() && getUser().role === 'admin' && getToken());
+
+// Admins can give a jersey number to a player who has none. The server keeps numbers unique per team.
+document.getElementById('squad-box').addEventListener('click', async function (e) {
+  const btn = e.target.closest('[data-set-jersey]');
+  if (!btn) return;
+  const input = btn.parentNode.querySelector('input');
+  if (input.value === '') { toast('error', 'Type a jersey number first.'); return; }
+  btn.disabled = true;
+  try {
+    await api('PUT', '/api/tournaments/' + input.dataset.tour + '/teams/' + input.dataset.team + '/players/' + input.dataset.player + '/jersey', { jersey: Number(input.value) });
+    toast('success', 'Jersey #' + input.value + ' saved.');
+    load();
+  } catch (err) {
+    toast('error', err.message);
+    btn.disabled = false;
+  }
+});
+
 async function load() {
   if (!teamName) {
     statusBox.innerHTML = '<div class="msg error">No house selected. <a href="/teams.html">See all houses</a></div>';
@@ -41,7 +60,10 @@ async function load() {
         return '<div class="card"><h3><a href="/tournament.html?id=' + sq.tournamentId + '">' + sportIcon(sq.sport) + ' ' + esc(sq.tournamentName) + '</a></h3>' +
           (sq.players.length === 0 ? '<div class="empty small">No roster added for this tournament.</div>' :
             '<ul class="lineup">' + sq.players.map(function (p) {
-              return '<li><span class="jersey a">' + p.jersey + '</span><a href="' + playerUrl(p) + '">' + esc(p.name) + '</a></li>';
+              const needsNumber = isAdmin && p.jersey === null;
+              return '<li><span class="jersey a">' + jerseyNum(p.jersey) + '</span><a href="' + playerUrl(p) + '">' + esc(p.name) + '</a>' +
+                (needsNumber ? '<span class="jersey-set"><input type="number" min="0" max="99" step="1" placeholder="No." aria-label="Jersey number for ' + esc(p.name) + '" data-tour="' + sq.tournamentId + '" data-team="' + sq.teamId + '" data-player="' + p.id + '">' +
+                  '<button type="button" class="secondary mini" data-set-jersey>Set</button></span>' : '') + '</li>';
             }).join('') + '</ul>') + '</div>';
       }).join('');
 
