@@ -28,7 +28,53 @@ async function loadTournaments() {
   tournaments = data.tournaments;
   fillSelect(matchSelect, tournaments, 'id', 'name');
   fillTeamSelects();
+  fillSelect(rTournament, tournaments, 'id', 'name');
+  fillRosterTeams();
 }
+
+// ---- rosters
+const rTournament = document.getElementById('r-tournament');
+const rTeam = document.getElementById('r-team');
+const rPlayers = document.getElementById('r-players');
+
+function currentTeam() {
+  const t = tournaments.find(function (x) { return x.id === rTournament.value; });
+  return t ? t.teams.find(function (x) { return x.id === rTeam.value; }) : null;
+}
+function fillRosterTeams() {
+  const t = tournaments.find(function (x) { return x.id === rTournament.value; });
+  fillSelect(rTeam, t ? t.teams : [], 'id', 'name');
+  showRoster();
+}
+function showRoster() {
+  const team = currentTeam();
+  rPlayers.value = team ? team.players.map(function (p) { return p.jersey + ' ' + p.name; }).join('\n') : '';
+}
+rTournament.addEventListener('change', fillRosterTeams);
+rTeam.addEventListener('change', showRoster);
+
+document.getElementById('roster-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const out = document.getElementById('r-msg');
+  showMsg(out, '', '');
+  if (!rTeam.value) { showMsg(out, 'error', 'Create a tournament first.'); return; }
+  const players = [];
+  const lines = rPlayers.value.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const parts = line.match(/^(\d{1,2})\s+(.+)$/);
+    if (!parts) { showMsg(out, 'error', 'Line ' + (i + 1) + ': start with the jersey number, e.g. "7 Aman Sharma"'); return; }
+    players.push({ jersey: Number(parts[1]), name: parts[2] });
+  }
+  try {
+    const keepT = rTournament.value, keepTeam = rTeam.value;
+    await api('PUT', '/api/tournaments/' + keepT + '/teams/' + keepTeam + '/players', { players: players });
+    showMsg(out, 'success', 'Roster saved (' + players.length + ' players).');
+    await loadTournaments();
+    rTournament.value = keepT; fillRosterTeams(); rTeam.value = keepTeam; showRoster();
+  } catch (err) { showMsg(out, 'error', err.message); }
+});
 
 async function loadMatches() {
   const box = document.getElementById('matches');

@@ -38,6 +38,18 @@
       <button type="submit" style="margin-top:8px" id="m-submit">Schedule match</button>
     </form>
 
+    <h2>Team rosters</h2>
+    <form class="card" id="roster-form">
+      <div class="row">
+        <div style="flex:1;min-width:150px"><label for="r-tournament">Tournament</label><select id="r-tournament"></select></div>
+        <div style="flex:1;min-width:150px"><label for="r-team">Team</label><select id="r-team"></select></div>
+      </div>
+      <label for="r-players">Players - one per line: jersey number, then name</label>
+      <textarea id="r-players" rows="6" placeholder="7 Aman Sharma&#10;10 Ravi Kumar"></textarea>
+      <div id="r-msg"></div>
+      <button type="submit" style="margin-top:8px">Save roster</button>
+    </form>
+
     <h2>Add scorer account</h2>
     <form class="card" id="user-form">
       <label for="u-email">Email</label><input id="u-email" type="email" required>

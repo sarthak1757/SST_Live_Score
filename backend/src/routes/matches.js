@@ -175,6 +175,17 @@ router.post(
       }
       if (score.matchDecided) throw httpError(409, 'Match is already decided - click Finish');
       eventData = { match: match._id, type: type, points: action.points, team: teamId };
+      // Optional: who scored. Must be on that team's roster.
+      if (req.body.player !== undefined && req.body.player !== null && req.body.player !== '') {
+        if (!mongoose.isValidObjectId(req.body.player)) throw httpError(400, 'Invalid player');
+        const tournament = await Tournament.findById(match.tournament);
+        const team = tournament ? tournament.teams.id(teamId) : null;
+        const player = team ? team.players.id(req.body.player) : null;
+        if (!player) throw httpError(400, "That player is not on this team's roster");
+        eventData.player = player._id;
+        eventData.playerName = player.name;
+        eventData.jersey = player.jersey;
+      }
     }
 
     eventData.scorer = req.user.id;

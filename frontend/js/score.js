@@ -7,6 +7,8 @@ const msg = document.getElementById('msg');
 let sports = null;
 let snap = null;
 let busy = false;
+let rosters = { a: [], b: [] };
+const chosen = { a: '', b: '' }; // selected player id per side (kept between taps)
 
 async function call(method, path, body, okText) {
   if (busy) return;
@@ -47,10 +49,13 @@ function render() {
   let pad = '';
   ['a', 'b'].forEach(function (side) {
     const team = side === 'a' ? m.teamA : m.teamB;
+    const roster = rosters[side];
+    const picker = roster.length === 0 ? '' : '<select class="player-pick" data-side="' + side + '"' + (open ? '' : ' disabled') + '><option value="">Player (optional)</option>' +
+      roster.map(function (p) { return '<option value="' + p.id + '"' + (chosen[side] === p.id ? ' selected' : '') + '>#' + p.jersey + ' ' + esc(p.name) + '</option>'; }).join('') + '</select>';
     const actionButtons = Object.keys(config.actions).map(function (key) {
       return '<button data-team="' + team.id + '" data-type="' + key + '"' + (open ? '' : ' disabled') + '>' + esc(config.actions[key].label) + '</button>';
     }).join('');
-    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + actionButtons + '</div>';
+    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + picker + actionButtons + '</div>';
   });
   document.getElementById('pad').innerHTML = pad;
 
@@ -71,7 +76,7 @@ function render() {
 
   const feed = document.getElementById('feed');
   feed.innerHTML = snap.events.length === 0 ? '<li class="muted">No actions yet.</li>' : snap.events.slice(0, 10).map(function (ev) {
-    return '<li><span>' + (ev.teamName ? esc(ev.teamName) + ' - ' : '') + esc(ev.label) + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
+    return '<li><span>' + (ev.teamName ? esc(ev.teamName) + ' - ' : '') + (ev.playerName ? '#' + ev.jersey + ' ' + esc(ev.playerName) + ' · ' : '') + esc(ev.label) + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
   }).join('');
 
   // wire up buttons
@@ -83,9 +88,13 @@ function render() {
   };
   const endSet = document.getElementById('btn-endset');
   if (endSet) endSet.onclick = function () { call('POST', '/events', { type: 'end_set' }, 'Set ended.'); };
+  document.querySelectorAll('.player-pick').forEach(function (sel) {
+    sel.onchange = function () { chosen[sel.dataset.side] = sel.value; };
+  });
   document.querySelectorAll('#pad button').forEach(function (btn) {
     btn.onclick = function () {
-      call('POST', '/events', { team: btn.dataset.team, type: btn.dataset.type }, 'Recorded.');
+      const side = btn.dataset.team === m.teamA.id ? 'a' : 'b';
+      call('POST', '/events', { team: btn.dataset.team, type: btn.dataset.type, player: chosen[side] || undefined }, 'Recorded.');
     };
   });
 }
@@ -100,6 +109,15 @@ async function init() {
     const data = await api('GET', '/api/sports');
     sports = data.sports;
     snap = await api('GET', '/api/matches/' + encodeURIComponent(matchId));
+    try { // rosters are optional - the page works without them
+      const all = await api('GET', '/api/tournaments');
+      const t = all.tournaments.find(function (x) { return x.id === snap.match.tournament; });
+      if (t) {
+        const ta = t.teams.find(function (x) { return x.id === snap.match.teamA.id; });
+        const tb = t.teams.find(function (x) { return x.id === snap.match.teamB.id; });
+        rosters = { a: ta ? ta.players : [], b: tb ? tb.players : [] };
+      }
+    } catch (e) { /* no roster picker */ }
     statusBox.innerHTML = '';
     content.hidden = false;
     render();

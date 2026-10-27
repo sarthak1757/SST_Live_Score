@@ -150,7 +150,29 @@ function computeStandings(teams, matches) {
   return rows;
 }
 
+// Points per player from events (events without a player are ignored).
+// Used for "top scorers" in one match and the leaderboard across a tournament.
+function topPlayers(events) {
+  const map = {};
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (!ev.player || ev.type === END_SET) continue;
+    const key = String(ev.player);
+    if (!map[key]) map[key] = { playerId: key, name: ev.playerName, jersey: ev.jersey, team: String(ev.team), points: 0, actions: 0 };
+    map[key].points += Number(ev.points) || 0;
+    map[key].actions++;
+  }
+  const rows = Object.keys(map).map(function (k) { return map[k]; });
+  rows.sort(function (x, y) {
+    if (y.points !== x.points) return y.points - x.points;
+    if (y.actions !== x.actions) return y.actions - x.actions;
+    return String(x.name).localeCompare(String(y.name));
+  });
+  return rows;
+}
+
 module.exports = {
+  topPlayers,
   canTransition,
   sortEvents,
   undoLast,

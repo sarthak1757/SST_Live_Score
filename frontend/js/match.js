@@ -61,6 +61,17 @@ function render(snap) {
     setsBox.innerHTML = '';
   }
 
+  // Top scorers (only when the scorer picked players)
+  const topBox = document.getElementById('top-scorers');
+  if (snap.topScorers && snap.topScorers.length > 0) {
+    topBox.innerHTML = '<h2>Top scorers</h2><table><thead><tr><th>Player</th><th>Team</th><th>Pts</th></tr></thead><tbody>' +
+      snap.topScorers.map(function (p) {
+        return '<tr><td><strong>#' + p.jersey + '</strong> ' + esc(p.name) + '</td><td>' + teamChip(p.teamName, p.side) + esc(p.teamName) + '</td><td class="win-cell">' + p.points + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  } else {
+    topBox.innerHTML = '';
+  }
+
   // Event feed: "Red House +2 Raid point  12:03:44"
   const feed = document.getElementById('feed');
   if (snap.events.length === 0) {
@@ -69,7 +80,7 @@ function render(snap) {
     feed.innerHTML = snap.events.map(function (ev) {
       let text;
       if (ev.teamName) {
-        text = teamChip(ev.teamName, ev.side) + '<strong>' + esc(ev.teamName) + '</strong> ' +
+        text = teamChip(ev.teamName, ev.side) + '<strong>' + esc(ev.teamName) + '</strong> ' + (ev.playerName ? '<span class="muted">#' + ev.jersey + ' ' + esc(ev.playerName) + '</span> ' : '') +
           (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label);
       } else {
         text = '\u23F1 ' + esc(ev.label);

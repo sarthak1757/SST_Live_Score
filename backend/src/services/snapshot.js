@@ -1,7 +1,7 @@
 // Builds the JSON the UI needs for a match. The score is ALWAYS computed from events.
 const ScoreEvent = require('../models/ScoreEvent');
 const { SPORTS, END_SET } = require('../config/sports');
-const { computeScore, sortEvents } = require('./scoring');
+const { computeScore, sortEvents, topPlayers } = require('./scoring');
 
 function publicMatch(m) {
   return {
@@ -41,7 +41,7 @@ function buildFeed(match, events) {
       const action = SPORTS[match.sport].actions[ev.type];
       label = action ? action.label : ev.type;
     }
-    feed.push({ id: ev._id, type: ev.type, label: label, points: ev.points, side: side, teamName: teamName, time: ev.createdAt });
+    feed.push({ id: ev._id, type: ev.type, label: label, points: ev.points, side: side, teamName: teamName, playerName: ev.playerName || null, jersey: ev.jersey === undefined ? null : ev.jersey, time: ev.createdAt });
   }
   return feed;
 }
@@ -49,7 +49,12 @@ function buildFeed(match, events) {
 async function buildSnapshot(match) {
   const events = await ScoreEvent.find({ match: match._id }).lean();
   const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id);
-  return { match: publicMatch(match), score: score, events: buildFeed(match, events) };
+  const topScorers = topPlayers(events).slice(0, 5).map(function (p) {
+    p.side = p.team === String(match.teamA.id) ? 'a' : 'b';
+    p.teamName = p.side === 'a' ? match.teamA.name : match.teamB.name;
+    return p;
+  });
+  return { match: publicMatch(match), score: score, events: buildFeed(match, events), topScorers: topScorers };
 }
 
 // For lists: attaches a main score to each match using ONE events query for all live matches.
