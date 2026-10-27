@@ -13,6 +13,7 @@ const matchSchema = new mongoose.Schema(
     tournament: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament', required: true, index: true },
     tournamentName: { type: String, required: true },
     sport: { type: String, required: true, enum: Object.keys(SPORTS) },
+    overs: { type: Number, default: null }, // cricket only, copied from the tournament
     teamA: teamRef,
     teamB: teamRef,
     // 'group' = league match; sf1/sf2/final = knockout bracket

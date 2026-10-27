@@ -20,7 +20,7 @@ function publicTournament(t) {
     const players = t.teams[i].players.map(function (p) { return { id: p._id, name: p.name, jersey: p.jersey }; });
     teams.push({ id: t.teams[i]._id, name: t.teams[i].name, players: players });
   }
-  return { id: t._id, name: t.name, sport: t.sport, sportLabel: SPORTS[t.sport].label, teams: teams };
+  return { id: t._id, name: t.name, sport: t.sport, sportLabel: SPORTS[t.sport].label, overs: t.overs || null, teams: teams };
 }
 
 // GET /api/tournaments (public)
@@ -88,7 +88,12 @@ router.post(
     if (teams.length < 2) throw httpError(400, 'Add at least 2 teams');
     if (teams.length > 16) throw httpError(400, 'At most 16 teams are allowed');
 
-    const tournament = await Tournament.create({ name: name, sport: sport, teams: teams, createdBy: req.user.id });
+    let overs = null;
+    if (SPORTS[sport].cricket) {
+      overs = req.body.overs === undefined || req.body.overs === null || req.body.overs === '' ? SPORTS[sport].cricket.overs : Number(req.body.overs);
+      if (!Number.isInteger(overs) || overs < 1 || overs > 50) throw httpError(400, 'Overs per innings must be a whole number from 1 to 50');
+    }
+    const tournament = await Tournament.create({ name: name, sport: sport, overs: overs, teams: teams, createdBy: req.user.id });
     await audit.record(req, 'tournament.create', { tournament: tournament._id }, { summary: name + ' (' + SPORTS[sport].label + ', ' + teams.length + ' teams)' });
     res.status(201).json({ tournament: publicTournament(tournament) });
   })
@@ -118,6 +123,7 @@ function createFixture(tournament, stage, teamA, teamB, when) {
     tournament: tournament._id,
     tournamentName: tournament.name,
     sport: tournament.sport,
+    overs: tournament.overs,
     stage: stage,
     teamA: { id: teamA.id, name: teamA.name },
     teamB: { id: teamB.id, name: teamB.name },

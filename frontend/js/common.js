@@ -42,11 +42,26 @@ function statusBadge(status) {
   return '<span class="badge ' + status + '">' + esc(names[status] || status) + '</span>';
 }
 
-const SPORT_ICONS = { football: '\u26BD', basketball: '\uD83C\uDFC0', volleyball: '\uD83C\uDFD0', badminton: '\uD83C\uDFF8', kabaddi: '\uD83E\uDD3C' };
+const SPORT_ICONS = { football: '\u26BD', basketball: '\uD83C\uDFC0', volleyball: '\uD83C\uDFD0', badminton: '\uD83C\uDFF8', kabaddi: '\uD83E\uDD3C', cricket: '\uD83C\uDFCF' };
 function sportIcon(sport) { return SPORT_ICONS[sport] || '\uD83C\uDFC5'; }
 
 // Colour chip: Team A is pink, Team B is lime (CSS classes .chip.a / .chip.b). No side = neutral grey.
 function teamChip(name, side) { return '<span class="chip ' + (side || '') + '"></span>'; }
+
+// ---- Cricket helpers (score.cricket comes from the server)
+function cricketTotal(inn) { return inn.runs + '/' + inn.wickets; }
+
+// One line: "Red batting - 3.2 of 10 overs", "Target 61 - Blue need 16 off 27 balls" or "Blue won by 7 wickets"
+function cricketSummary(m, s) {
+  const c = s.cricket;
+  function name(side) { return esc(side === 'a' ? m.teamA.name : m.teamB.name); }
+  if (c.result) return c.result.winner === 'draw' ? 'Match tied' : name(c.result.winner) + ' ' + esc(c.result.text);
+  if (m.status === 'finished') return 'Match ended early' + (m.winner === 'draw' ? ' - level on runs' : ' - ' + name(m.winner) + ' ahead on runs');
+  if (m.status === 'scheduled') return name('a') + ' bat first · ' + c.maxOvers + ' overs per side';
+  if (c.current === 0) return name('a') + ' batting · ' + c.innings[0].overs + ' of ' + c.maxOvers + ' overs';
+  const need = c.target - c.innings[1].runs;
+  return 'Target ' + c.target + ' · ' + name('b') + ' need ' + need + ' off ' + c.ballsLeft + (c.ballsLeft === 1 ? ' ball' : ' balls');
+}
 
 // Small pop-up message at the bottom of the screen. type: success | error
 function toast(type, text) {

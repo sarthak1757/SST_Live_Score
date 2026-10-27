@@ -1,6 +1,6 @@
 // Builds the JSON the UI needs for a match. The score is ALWAYS computed from events.
 const ScoreEvent = require('../models/ScoreEvent');
-const { SPORTS, END_SET } = require('../config/sports');
+const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 const { computeScore, sortEvents, topPlayers } = require('./scoring');
 
 function publicMatch(m) {
@@ -9,6 +9,7 @@ function publicMatch(m) {
     tournament: m.tournament,
     tournamentName: m.tournamentName,
     stage: m.stage || 'group',
+    overs: m.overs || null,
     sport: m.sport,
     sportLabel: SPORTS[m.sport].label,
     teamA: { id: m.teamA.id, name: m.teamA.name },
@@ -38,8 +39,8 @@ function buildFeed(match, events) {
       side = 'b';
       teamName = match.teamB.name;
     }
-    let label = 'End set';
-    if (ev.type !== END_SET) {
+    let label = ev.type === END_INNINGS ? 'End of innings' : 'End set';
+    if (ev.type !== END_SET && ev.type !== END_INNINGS) {
       const action = SPORTS[match.sport].actions[ev.type];
       label = action ? action.label : ev.type;
     }
@@ -50,7 +51,7 @@ function buildFeed(match, events) {
 
 async function buildSnapshot(match) {
   const events = await ScoreEvent.find({ match: match._id }).lean();
-  const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id);
+  const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id, { overs: match.overs });
   const topScorers = topPlayers(events).slice(0, 5).map(function (p) {
     p.side = p.team === String(match.teamA.id) ? 'a' : 'b';
     p.teamName = p.side === 'a' ? match.teamA.name : match.teamB.name;
@@ -80,7 +81,7 @@ async function listWithScores(matches) {
     const m = matches[i];
     const out = publicMatch(m);
     if (m.status === 'live') {
-      const s = computeScore(eventsByMatch[String(m._id)] || [], m.sport, m.teamA.id, m.teamB.id);
+      const s = computeScore(eventsByMatch[String(m._id)] || [], m.sport, m.teamA.id, m.teamB.id, { overs: m.overs });
       out.score = { a: s.a, b: s.b };
     } else if (m.status === 'finished' && m.finalScore) {
       out.score = { a: m.finalScore.a, b: m.finalScore.b };

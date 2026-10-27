@@ -18,6 +18,10 @@
       <input id="t-name" maxlength="80" required placeholder="e.g. Inter-house Football 2026">
       <label for="t-sport">Sport</label>
       <select id="t-sport" required></select>
+      <div id="t-overs-wrap" hidden>
+        <label for="t-overs">Overs per innings</label>
+        <input id="t-overs" type="number" min="1" max="50" step="1" value="10">
+      </div>
       <label for="t-teams">Houses / teams (one per line, at least 2)</label>
       <textarea id="t-teams" rows="5" placeholder="Red&#10;Blue&#10;Green&#10;Yellow" required></textarea>
       <div id="t-msg"></div>
@@ -29,7 +33,7 @@
       <label for="m-tournament">Tournament</label>
       <select id="m-tournament" required></select>
       <div class="row">
-        <div style="flex:1;min-width:140px"><label for="m-a">Team A</label><select id="m-a" required></select></div>
+        <div style="flex:1;min-width:140px"><label for="m-a">Team A (bats first in cricket)</label><select id="m-a" required></select></div>
         <div style="flex:1;min-width:140px"><label for="m-b">Team B</label><select id="m-b" required></select></div>
       </div>
       <label for="m-when">Date and time</label>

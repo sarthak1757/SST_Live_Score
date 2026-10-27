@@ -1,5 +1,5 @@
 // Pure scoring functions - no database, no Express. Easy to unit test.
-const { SPORTS, END_SET } = require('../config/sports');
+const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 
 const WIN_POINTS = 3;
 const DRAW_POINTS = 1;
@@ -49,10 +49,11 @@ function setsToWin(sport) {
 //   currentSet     -> points in the set being played (set sports only)
 //   sets           -> finished sets [{ number, a, b, winner }]
 //   matchDecided   -> true when a team already won the match on sets
-function computeScore(events, sport, teamAId, teamBId) {
+function computeScore(events, sport, teamAId, teamBId, options) {
   const idA = String(teamAId);
   const idB = String(teamBId);
   const config = SPORTS[sport];
+  if (config && config.cricket) return computeCricket(events, config, (options && options.overs) || config.cricket.overs);
   const isSetSport = !!(config && config.sets);
 
   const score = { a: 0, b: 0, sets: [], currentSet: null, matchDecided: false };
@@ -98,6 +99,73 @@ function computeScore(events, sport, teamAId, teamBId) {
     score.b = totalB;
   }
   return score;
+}
+
+function oversText(balls) {
+  return Math.floor(balls / 6) + '.' + (balls % 6);
+}
+
+// Cricket: Team A bats first, then Team B chases. An innings ends when the batting side
+// is all out, the overs run out, the chase passes the target, or the scorer ends it.
+// Main score (a, b) = runs, so getWinner() and standings work exactly like other sports.
+function computeCricket(events, config, overs) {
+  const maxBalls = overs * 6;
+  const maxWickets = config.cricket.wickets;
+  const innings = [
+    { side: 'a', runs: 0, wickets: 0, balls: 0 },
+    { side: 'b', runs: 0, wickets: 0, balls: 0 },
+  ];
+  let current = 0; // 0 = first innings, 1 = chase, 2 = match over
+
+  const sorted = sortEvents(events);
+  for (let i = 0; i < sorted.length && current < 2; i++) {
+    const ev = sorted[i];
+    if (ev.type === END_INNINGS) {
+      current++;
+      continue;
+    }
+    const action = config.actions[ev.type];
+    if (!action) continue;
+    const inn = innings[current];
+    inn.runs += Number(ev.points) || 0;
+    if (action.ball) inn.balls++;
+    if (action.wicket) inn.wickets++;
+    const chased = current === 1 && inn.runs > innings[0].runs;
+    if (inn.wickets >= maxWickets || inn.balls >= maxBalls || chased) current++;
+  }
+
+  innings.forEach(function (inn) { inn.overs = oversText(inn.balls); });
+  let result = null;
+  if (current === 2) {
+    const a = innings[0].runs;
+    const b = innings[1].runs;
+    if (b > a) {
+      const left = maxWickets - innings[1].wickets;
+      result = { winner: 'b', text: 'won by ' + left + (left === 1 ? ' wicket' : ' wickets') };
+    } else if (a > b) {
+      result = { winner: 'a', text: 'won by ' + (a - b) + (a - b === 1 ? ' run' : ' runs') };
+    } else {
+      result = { winner: 'draw', text: 'Match tied' };
+    }
+  }
+
+  return {
+    a: innings[0].runs,
+    b: innings[1].runs,
+    sets: [],
+    currentSet: null,
+    matchDecided: current === 2,
+    cricket: {
+      innings: innings,
+      current: current,
+      battingSide: current === 0 ? 'a' : current === 1 ? 'b' : null,
+      target: current >= 1 ? innings[0].runs + 1 : null,
+      ballsLeft: current === 1 ? maxBalls - innings[1].balls : null,
+      maxOvers: overs,
+      maxWickets: maxWickets,
+      result: result,
+    },
+  };
 }
 
 // 'a', 'b' or 'draw' based on the main score.
@@ -173,6 +241,7 @@ function topPlayers(events) {
 
 module.exports = {
   topPlayers,
+  oversText,
   canTransition,
   sortEvents,
   undoLast,

@@ -94,10 +94,10 @@ function setConn(kind, text) {
   connBadge.textContent = text;
 }
 
-function teamBlock(team, score, side, won) {
+function teamBlock(team, score, side, won, extra) {
   return '<div class="sb-team ' + (won ? 'won' : '') + '" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '">' +
     '<div class="sb-bar"></div><div class="sb-name">' + esc(team.name) + (won ? ' \uD83C\uDFC6' : '') + '</div>' +
-    '<div class="sb-num" id="num-' + side + '">' + score + '</div></div>';
+    '<div class="sb-num" id="num-' + side + '">' + score + '</div>' + (extra || '') + '</div>';
 }
 
 function render(snap) {
@@ -115,13 +115,25 @@ function render(snap) {
   const isSetSport = s.currentSet !== null;
   const aWon = m.status === 'finished' && m.winner === 'a';
   const bWon = m.status === 'finished' && m.winner === 'b';
+  // Cricket shows runs/wickets and overs, e.g. "142/6 (18.3 ov)"
+  let showA = s.a, showB = s.b, extraA = '', extraB = '';
+  if (s.cricket) {
+    const ia = s.cricket.innings[0], ib = s.cricket.innings[1];
+    showA = ia.runs + '<small>/' + ia.wickets + '</small>';
+    showB = ib.runs + '<small>/' + ib.wickets + '</small>';
+    const bat = m.status === 'live' ? s.cricket.battingSide : null;
+    extraA = '<div class="sb-overs">' + ia.overs + ' ov' + (bat === 'a' ? ' · <span class="batting">batting</span>' : '') + '</div>';
+    extraB = '<div class="sb-overs">' + (s.cricket.current >= 1 ? ib.overs + ' ov' : 'yet to bat') + (bat === 'b' ? ' · <span class="batting">batting</span>' : '') + '</div>';
+  }
+
   let footer = '';
-  if (m.status === 'finished') footer = m.winner === 'draw' ? 'Full time - match drawn' : 'Full time - ' + esc(m.winner === 'a' ? m.teamA.name : m.teamB.name) + ' win';
+  if (s.cricket) footer = cricketSummary(m, s);
+  else if (m.status === 'finished') footer = m.winner === 'draw' ? 'Full time - match drawn' : 'Full time - ' + esc(m.winner === 'a' ? m.teamA.name : m.teamB.name) + ' win';
   else if (m.status === 'scheduled') footer = 'Kick-off ' + fmtDate(m.scheduledAt);
   else if (isSetSport) footer = 'Sets won · Set ' + s.currentSet.number + ' in play: ' + s.currentSet.a + ' - ' + s.currentSet.b;
 
   document.getElementById('scoreboard').innerHTML =
-    '<div class="sb-grid">' + teamBlock(m.teamA, s.a, 'a', aWon) + '<div class="sb-dash">-</div>' + teamBlock(m.teamB, s.b, 'b', bWon) + '</div>' +
+    '<div class="sb-grid">' + teamBlock(m.teamA, showA, 'a', aWon, extraA) + '<div class="sb-dash">-</div>' + teamBlock(m.teamB, showB, 'b', bWon, extraB) + '</div>' +
     (footer ? '<div class="sb-footer">' + footer + '</div>' : '');
 
   // flash the number that changed

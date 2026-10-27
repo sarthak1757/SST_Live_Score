@@ -27,7 +27,7 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 8. **Fan engagement** - viewers react to a live match (🔥 👏 😮) without logging in; counts update live for everyone over SSE and are rate-limited per browser and per IP. Signed-in users chat under the match (max 200 characters, 3 per 30 s); admins can delete comments. Only the part of the email before "@" is shown publicly.
 9. **Follow houses** - anyone can sign up as a **fan** (self sign-up always creates the `fan` role, 5 sign-ups per hour per IP). Fans follow houses and get a **My feed** page with their houses' live and upcoming matches and results, across every sport. A house is matched by team name, case-insensitively, so following "Red" covers Red in football and in kabaddi. Fans can comment but cannot score or administer.
 10. **Audit log** - every scoring action, set end, undo, start/finish and admin change (tournament, roster, match create/delete, bracket, comment deletion, account creation) is recorded with who, what and when. Admins open the **Audit** page and view it per match or per tournament, e.g. "s@sst.edu - Undid last action: Blue Raid point (+1)".
-11. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
+11. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
 |---|---|---|
@@ -35,6 +35,7 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 | Basketball | +1, +2, +3 | total points |
 | Volleyball, Badminton | Point +1, End set | best of 3 sets |
 | Kabaddi | Raid +1, Tackle +1, Bonus +1, All-out +2 | total points |
+| Cricket | Dot, 1, 2, 3, Four, Six, Wide, No-ball, Wicket, End innings | limited overs (set per tournament, default 10), Team A bats first |
 
 Error handling covers invalid input, missing/expired tokens, wrong role, unknown ids, invalid status changes, double-clicks by two scorers (conditional DB updates), database outages (HTTP 503) and dropped SSE connections. The UI shows loading, empty, success and error states.
 
@@ -111,6 +112,8 @@ package.json            root scripts only (start, seed, test) so Render settings
 
 **Audit log:** routes call `audit.record(req, action, { match, tournament }, details)` only after an action succeeds, so rejected requests (e.g. scoring a finished match) are never logged. Entries store the actor id and role; the email is joined in when admins read the log. `buildEntry()` only accepts known action names, and `describe()` turns an entry into a readable line. If writing the log fails, the error is reported in the server log but the scorer's action still goes through.
 
+**Cricket:** it uses the same event model. Every ball is a `ScoreEvent`, and `computeCricket()` in `scoring.js` replays them into runs, wickets and overs per innings. Wides and no-balls add a run but are not legal balls. An innings ends automatically when the side is all out (10 wickets), the overs run out, or the chase passes the target. The scorer can also end it early. Only the batting team can score; the API rejects the bowling side. The main score is runs, so `getWinner()`, standings, brackets, undo and SSE work unchanged. The result reads "won by N wickets" or "won by N runs". Extras are never credited to a batter in player stats.
+
 **Notes on rules:** for set sports the main score is *sets won*; a set cannot be ended while tied or empty; once a team has won 2 sets no more points are accepted and the scorer clicks Finish. Finishing early compares sets won (equal = draw) and ignores points in an unfinished set.
 
 ## Local Setup
@@ -153,7 +156,7 @@ Note: Render's free tier sleeps after inactivity, so the first request can take 
 
 ## Future Work
 
-- **Cricket** (overs, wickets, innings, run rate) - out of scope for this version because it does not fit the "points per action" model.
+- **Deeper cricket:** toss and choice of who bats first, batting and bowling figures per player, run rate, byes and leg-byes, run-outs off a scoring ball, and a super over for tied knockout matches. At the moment a tied knockout cricket match cannot be finished.
 - **Push notifications** for match start and final results.
 - **Player stats** (top scorers, per-player history).
 - **Split hosting (Vercel + Render):** deploy `frontend/` to Vercel as a static site and keep `backend/` on Render. Set `API_BASE` in `frontend/js/api.js` to the Render URL and add CORS (allow the Vercel origin, `Authorization` header) to the Express app. SSE then works cross-origin as well.

@@ -112,6 +112,7 @@ async function init() {
       const sports = await api('GET', '/api/sports');
       const list = Object.keys(sports.sports).map(function (k) { return { key: k, label: sports.sports[k].label }; });
       fillSelect(document.getElementById('t-sport'), list, 'key', 'label');
+      toggleOvers();
       await loadTournaments();
     } catch (err) {
       showMsg(document.getElementById('global-msg'), 'error', err.message);
@@ -121,19 +122,22 @@ async function init() {
 }
 
 matchSelect.addEventListener('change', fillTeamSelects);
+// overs are only asked for cricket
+function toggleOvers() { document.getElementById('t-overs-wrap').hidden = document.getElementById('t-sport').value !== 'cricket'; }
+document.getElementById('t-sport').addEventListener('change', toggleOvers);
 
 document.getElementById('tournament-form').addEventListener('submit', async function (e) {
   e.preventDefault();
   showMsg(tMsg, '', '');
   const teams = document.getElementById('t-teams').value.split('\n');
+  const sport = document.getElementById('t-sport').value;
+  const body = { name: document.getElementById('t-name').value, sport: sport, teams: teams };
+  if (sport === 'cricket') body.overs = Number(document.getElementById('t-overs').value);
   try {
-    const data = await api('POST', '/api/tournaments', {
-      name: document.getElementById('t-name').value,
-      sport: document.getElementById('t-sport').value,
-      teams: teams,
-    });
+    const data = await api('POST', '/api/tournaments', body);
     showMsg(tMsg, 'success', 'Tournament "' + data.tournament.name + '" created.');
     e.target.reset();
+    toggleOvers();
     await loadTournaments();
   } catch (err) {
     showMsg(tMsg, 'error', err.message);

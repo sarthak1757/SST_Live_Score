@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const Match = require('../models/Match');
 const Tournament = require('../models/Tournament');
 const ScoreEvent = require('../models/ScoreEvent');
-const { SPORTS, END_SET } = require('../config/sports');
+const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
 const { computeScore, getWinner, undoLast, canTransition } = require('../services/scoring');
@@ -86,6 +86,7 @@ router.post(
       tournament: tournament._id,
       tournamentName: tournament.name,
       sport: tournament.sport,
+      overs: tournament.overs,
       teamA: { id: teamA._id, name: teamA.name },
       teamB: { id: teamB._id, name: teamB.name },
       scheduledAt: when,
@@ -144,7 +145,7 @@ router.post(
       throw httpError(409, match.status === 'finished' ? 'Match is already finished' : 'Start the match before finishing it');
     }
     const events = await ScoreEvent.find({ match: match._id }).lean();
-    const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id);
+    const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id, { overs: match.overs });
     const winner = getWinner(score);
     if (match.stage !== 'group' && winner === 'draw') {
       throw httpError(409, 'Knockout matches cannot end in a draw - keep scoring until there is a winner');
@@ -175,10 +176,14 @@ router.post(
     const config = SPORTS[match.sport];
 
     const events = await ScoreEvent.find({ match: match._id }).lean();
-    const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id);
+    const score = computeScore(events, match.sport, match.teamA.id, match.teamB.id, { overs: match.overs });
 
     let eventData;
-    if (type === END_SET) {
+    if (type === END_INNINGS) {
+      if (!config.cricket) throw httpError(400, 'Only cricket has innings');
+      if (score.matchDecided) throw httpError(409, 'Match is already decided - click Finish');
+      eventData = { match: match._id, type: END_INNINGS, points: 0, team: null };
+    } else if (type === END_SET) {
       if (!config.sets) throw httpError(400, 'This sport does not have sets');
       if (score.matchDecided) throw httpError(409, 'Match is already decided - click Finish');
       if (score.currentSet.a === 0 && score.currentSet.b === 0) throw httpError(400, 'No points in this set yet');
@@ -193,9 +198,15 @@ router.post(
         throw httpError(400, 'That team is not playing in this match');
       }
       if (score.matchDecided) throw httpError(409, 'Match is already decided - click Finish');
+      if (config.cricket) {
+        const battingId = score.cricket.battingSide === 'a' ? String(match.teamA.id) : String(match.teamB.id);
+        if (teamId !== battingId) {
+          throw httpError(400, (teamId === String(match.teamA.id) ? match.teamA.name : match.teamB.name) + ' is not batting right now');
+        }
+      }
       eventData = { match: match._id, type: type, points: action.points, team: teamId };
       // Optional: who scored. Must be on that team's roster.
-      if (req.body.player !== undefined && req.body.player !== null && req.body.player !== '') {
+      if (!action.extra && req.body.player !== undefined && req.body.player !== null && req.body.player !== '') { // extras are not a batter's runs
         if (!mongoose.isValidObjectId(req.body.player)) throw httpError(400, 'Invalid player');
         const tournament = await Tournament.findById(match.tournament);
         const team = tournament ? tournament.teams.id(teamId) : null;
@@ -209,7 +220,9 @@ router.post(
 
     eventData.scorer = req.user.id;
     await ScoreEvent.create(eventData);
-    if (type === END_SET) {
+    if (type === END_INNINGS) {
+      await audit.record(req, 'innings.end', { match: match._id, tournament: match.tournament }, { summary: 'Innings ' + (score.cricket.current + 1) });
+    } else if (type === END_SET) {
       await audit.record(req, 'set.end', { match: match._id, tournament: match.tournament }, { summary: 'Set ' + score.currentSet.number + ' ' + score.currentSet.a + '-' + score.currentSet.b });
     } else {
       await audit.record(req, 'score.add', { match: match._id, tournament: match.tournament }, {
@@ -240,7 +253,7 @@ router.delete(
     const teamName = String(ev.team) === String(match.teamA.id) ? match.teamA.name : String(ev.team) === String(match.teamB.id) ? match.teamB.name : null;
     const action = SPORTS[match.sport].actions[ev.type];
     await audit.record(req, 'score.undo', { match: match._id, tournament: match.tournament }, {
-      removed: { team: teamName, label: ev.type === END_SET ? 'End set' : action ? action.label : ev.type, points: ev.points },
+      removed: { team: teamName, label: ev.type === END_SET ? 'End set' : ev.type === END_INNINGS ? 'End of innings' : action ? action.label : ev.type, points: ev.points },
     });
     await respondAndBroadcast(res, match);
   })

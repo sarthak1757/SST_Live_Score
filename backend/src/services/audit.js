@@ -10,6 +10,7 @@ const ACTIONS = {
   'match.finish': 'Finished match',
   'score.add': 'Scored',
   'set.end': 'Ended set',
+  'innings.end': 'Ended innings',
   'score.undo': 'Undid last action',
   'comment.delete': 'Deleted comment',
   'user.create': 'Created account',

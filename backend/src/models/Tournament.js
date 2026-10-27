@@ -5,6 +5,7 @@ const tournamentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 80 },
     sport: { type: String, required: true, enum: Object.keys(SPORTS) },
+    overs: { type: Number, min: 1, max: 50, default: null }, // cricket only
     // houses / teams. Each team gets its own _id automatically.
     teams: [
       {

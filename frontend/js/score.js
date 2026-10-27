@@ -45,6 +45,7 @@ function render() {
   controls += '<button class="success" id="btn-start"' + (m.status === 'scheduled' && !busy ? '' : ' disabled') + '>\u25B6 Start match</button>';
   controls += '<button class="secondary" id="btn-undo"' + (live && snap.events.length > 0 && !busy ? '' : ' disabled') + '>\u21B6 Undo last</button>';
   if (config.sets) controls += '<button class="secondary" id="btn-endset"' + (open ? '' : ' disabled') + '>End set</button>';
+  if (config.cricket) controls += '<button class="secondary" id="btn-endinnings"' + (open ? '' : ' disabled') + '>End innings</button>';
   controls += '<button class="danger" id="btn-finish"' + (live && !busy ? '' : ' disabled') + '>\u23F9 Finish match</button>';
   document.getElementById('controls').innerHTML = controls;
 
@@ -53,17 +54,29 @@ function render() {
   ['a', 'b'].forEach(function (side) {
     const team = side === 'a' ? m.teamA : m.teamB;
     const roster = rosters[side];
-    const picker = roster.length === 0 ? '' : '<select class="player-pick" data-side="' + side + '"' + (open ? '' : ' disabled') + '><option value="">Player (optional)</option>' +
+    // Cricket: only the batting team gets buttons
+    const batting = !config.cricket || (s.cricket.battingSide === side);
+    const canTap = open && batting;
+    const picker = roster.length === 0 || !batting ? '' : '<select class="player-pick" data-side="' + side + '"' + (canTap ? '' : ' disabled') + '><option value="">Player (optional)</option>' +
       roster.map(function (p) { return '<option value="' + p.id + '"' + (chosen[side] === p.id ? ' selected' : '') + '>#' + p.jersey + ' ' + esc(p.name) + '</option>'; }).join('') + '</select>';
-    const actionButtons = Object.keys(config.actions).map(function (key) {
-      return '<button data-team="' + team.id + '" data-type="' + key + '"' + (open ? '' : ' disabled') + '>' + esc(config.actions[key].label) + '</button>';
+    let actionButtons = Object.keys(config.actions).map(function (key) {
+      return '<button data-team="' + team.id + '" data-type="' + key + '"' + (canTap ? '' : ' disabled') + '>' + esc(config.actions[key].label) + '</button>';
     }).join('');
+    let numText = s[side];
+    if (config.cricket) {
+      const inn = s.cricket.innings[side === 'a' ? 0 : 1];
+      numText = cricketTotal(inn) + '<div class="muted">' + inn.overs + ' ov</div>';
+      if (!batting) actionButtons = '<div class="empty small">' + (s.cricket.battingSide ? 'Bowling' : 'Innings complete') + '</div>';
+      else actionButtons = '<div class="cricket-pad">' + actionButtons + '</div>';
+    }
     pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--pink)' : 'var(--lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + picker + actionButtons + '</div>';
   });
   document.getElementById('pad').innerHTML = pad;
 
   const setsBox = document.getElementById('sets');
-  if (s.currentSet) {
+  if (s.cricket) {
+    setsBox.innerHTML = '<div class="card">' + cricketSummary(m, s) + (s.matchDecided && live ? ' · <strong>click Finish</strong>' : '') + '</div>';
+  } else if (s.currentSet) {
     let text = 'Sets won: ' + s.a + ' - ' + s.b;
     if (!s.matchDecided && live) text += ' · Current set ' + s.currentSet.number + ': ' + s.currentSet.a + ' - ' + s.currentSet.b;
     if (s.matchDecided && live) text += ' · Match decided - click Finish';
@@ -88,6 +101,12 @@ function render() {
   document.getElementById('btn-finish').onclick = async function () {
     const text = 'Final score: ' + m.teamA.name + ' ' + s.a + ' - ' + s.b + ' ' + m.teamB.name + '. Scoring will be closed and the result added to the standings.';
     if (await confirmDialog('Finish this match?', text, 'Yes, finish')) call('POST', '/finish', null, 'Match finished.');
+  };
+  const endInnings = document.getElementById('btn-endinnings');
+  if (endInnings) endInnings.onclick = async function () {
+    if (await confirmDialog('End this innings?', 'Use this only if the innings ends early. All out, overs completed and a successful chase end it automatically.', 'End innings')) {
+      call('POST', '/events', { type: 'end_innings' }, 'Innings ended.');
+    }
   };
   const endSet = document.getElementById('btn-endset');
   if (endSet) endSet.onclick = function () { call('POST', '/events', { type: 'end_set' }, 'Set ended.'); };
