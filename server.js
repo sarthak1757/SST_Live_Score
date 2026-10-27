@@ -10,6 +10,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/tournaments', require('./src/routes/tournaments'));
+app.use('/api/matches', require('./src/routes/matches'));
+app.get('/api/sports', (req, res) => res.json({ sports: require('./src/config/sports').SPORTS }));
 
 app.use('/api', notFound);
 app.use(errorHandler);
