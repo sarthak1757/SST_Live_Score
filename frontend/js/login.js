@@ -2,7 +2,7 @@ const form = document.getElementById('login-form');
 const msg = document.getElementById('msg');
 const submit = document.getElementById('submit');
 
-if (getToken() && getUser()) window.location.href = '/dashboard.html';
+if (getToken() && getUser()) window.location.href = homeFor(getUser());
 
 form.addEventListener('submit', async function (e) {
   e.preventDefault();
@@ -15,7 +15,7 @@ form.addEventListener('submit', async function (e) {
       password: document.getElementById('password').value,
     });
     saveLogin(data.token, data.user);
-    window.location.href = '/dashboard.html';
+    window.location.href = homeFor(data.user);
   } catch (err) {
     showMsg(msg, 'error', err.message);
     submit.disabled = false;

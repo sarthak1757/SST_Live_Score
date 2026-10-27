@@ -1,4 +1,5 @@
 const user = requireLogin();
+if (user && user.role === 'fan') window.location.href = '/feed.html'; // scoring is for staff only
 const matchId = new URLSearchParams(window.location.search).get('id');
 const statusBox = document.getElementById('status');
 const content = document.getElementById('content');

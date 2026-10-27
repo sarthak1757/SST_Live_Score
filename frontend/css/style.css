@@ -214,3 +214,5 @@ button.react.bump { animation: bump .4s ease; }
 .comment-row input { flex: 1; }
 button.mini { padding: 3px 10px; font-size: .62rem; margin-left: 6px; }
 ul.comments li:first-child { background: transparent; }
+
+.tabs.wrap { flex-wrap: wrap; overflow: visible; }

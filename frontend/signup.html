@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign up - SST Live</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main style="max-width:440px">
+  <h1>Join as a fan</h1>
+  <p class="muted">Follow your houses, get a personal feed and join the match chat.</p>
+  <form class="card" id="signup-form">
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" maxlength="100" required>
+    <label for="password">Password (min 8 characters)</label>
+    <input id="password" type="password" autocomplete="new-password" minlength="8" maxlength="100" required>
+    <div id="msg"></div>
+    <button type="submit" id="submit" style="width:100%;margin-top:10px">Create account</button>
+  </form>
+  <p class="muted">Already have an account? <a href="/login.html">Log in</a></p>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/signup.js"></script>
+</body>
+</html>

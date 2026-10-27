@@ -17,7 +17,7 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 
 ## Key Features
 
-1. **Scorer login** - hashed passwords (bcrypt), JWT sessions, `admin` and `scorer` roles, seed script for the first admin.
+1. **Login** - hashed passwords (bcrypt), JWT sessions, `admin`, `scorer` and `fan` roles, seed script for the first admin.
 2. **Tournaments and scheduling** (admin) - create a tournament with a sport and houses/teams, then schedule matches between them.
 3. **Live scoring** - Start, tap scoring buttons, Undo last action, End set (volleyball/badminton), Finish. Status flow is validated: `scheduled -> live -> finished`; you cannot score a finished match or finish a scheduled one.
 4. **Public live view** - home page with live/upcoming/finished matches and status/sport filters; match page with real-time score + event feed (auto-reconnecting SSE); tournament page with standings (win 3, draw 1, loss 0).
@@ -25,7 +25,8 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 6. **Players & stats** - admins add a roster (jersey no. + name) per team; scorers can optionally pick the player for each action (e.g. kabaddi raid point by #7). The match page shows top scorers and the feed names the player; the tournament page has a top-players leaderboard across all matches.
 7. **Knockout brackets** - once all group matches are finished, the admin generates semifinals from the top 4 of the standings (SF1: 1st v 4th, SF2: 2nd v 3rd), then the final from the two winners. The tournament page shows a bracket view and the champion. Knockout matches cannot end in a draw.
 8. **Fan engagement** - viewers react to a live match (🔥 👏 😮) without logging in; counts update live for everyone over SSE and are rate-limited per browser and per IP. Signed-in users chat under the match (max 200 characters, 3 per 30 s); admins can delete comments. Only the part of the email before "@" is shown publicly.
-9. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
+9. **Follow houses** - anyone can sign up as a **fan** (self sign-up always creates the `fan` role, 5 sign-ups per hour per IP). Fans follow houses and get a **My feed** page with their houses' live and upcoming matches and results, across every sport. A house is matched by team name, case-insensitively, so following "Red" covers Red in football and in kabaddi. Fans can comment but cannot score or administer.
+10. **One sports config** - football, basketball, volleyball, badminton and kabaddi are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
 |---|---|---|
@@ -64,8 +65,8 @@ backend/
   package.json          backend dependencies and scripts
   src/config/sports.js  the single sports config object
   src/models/           User, Tournament, Match, ScoreEvent, Comment (Mongoose)
-  src/services/         scoring.js, bracket.js, roster.js, engagement.js, rateLimit.js (pure logic), snapshot.js, sse.js
-  src/routes/           auth, tournaments, matches
+  src/services/         scoring.js, bracket.js, roster.js, engagement.js, follows.js, rateLimit.js (pure logic), snapshot.js, sse.js
+  src/routes/           auth, tournaments, matches, fans (houses, follows, feed)
   src/middleware/       requireAuth / requireRole, error handling
   tests/                Jest tests for the scoring logic
 package.json            root scripts only (start, seed, test) so Render settings stay simple
@@ -90,6 +91,9 @@ package.json            root scripts only (start, seed, test) so Render settings
 | PUT | `/api/tournaments/:id/teams/:teamId/players` (replace roster) | admin |
 | POST | `/api/tournaments/:id/bracket`, `/api/tournaments/:id/bracket/final` | admin |
 | POST | `/api/matches/:id/reactions` `{ type, clientId }` | public, rate-limited |
+| POST | `/api/auth/signup` (creates a fan) | public, rate-limited |
+| GET | `/api/houses` | public |
+| GET / PUT | `/api/me/follows`, GET `/api/me/feed` | any signed-in user |
 | GET / POST | `/api/matches/:id/comments` | GET public, POST any signed-in user |
 | DELETE | `/api/matches/:id/comments/:commentId` | admin |
 | POST | `/api/matches/:id/start`, `/finish`, `/events` | admin, scorer |
@@ -100,6 +104,8 @@ package.json            root scripts only (start, seed, test) so Render settings
 **Brackets:** a match has a `stage` (`group`, `sf1`, `sf2`, `final`). Standings only count `group` matches, so knockouts never change the league table. Seeding and finalist logic are pure functions in `src/services/bracket.js`. A partial unique index on `(tournament, stage)` stops a double-click from creating a stage twice.
 
 **Fan engagement:** reaction counts live on the match and use an atomic `$inc`, so no clicks are lost. The SSE stream carries three event types: `snapshot` (score and feed), `reactions` (counts) and `comments` (latest 50). A small sliding-window limiter (`src/services/rateLimit.js`) allows 1 reaction per 1.5 s per browser id and 60 per minute per IP, so faking browser ids does not help. Limits are in memory, which is fine for a single Render instance.
+
+**Roles:** `admin` (everything), `scorer` (start, score, undo, finish), `fan` (follow houses, comment). Every protected route uses `requireAuth` + `requireRole(...)`; sign-up ignores any `role` in the request body.
 
 **Notes on rules:** for set sports the main score is *sets won*; a set cannot be ended while tied or empty; once a team has won 2 sets no more points are accepted and the scorer clicks Finish. Finishing early compares sets won (equal = draw) and ignores points in an unfinished set.
 

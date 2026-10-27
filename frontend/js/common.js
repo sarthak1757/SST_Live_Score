@@ -79,10 +79,10 @@ function confirmDialog(title, text, okLabel) {
 // Top navigation bar.
 function renderNav() {
   const user = getUser();
-  let right = '<a href="/login.html">Scorer login</a>';
+  let right = '<a href="/signup.html">Sign up</a><a href="/login.html">Log in</a>';
   if (user && getToken()) {
-    right = '<a href="/dashboard.html">Dashboard</a><span class="muted">' + esc(user.email) +
-      '</span><a href="#" id="logout-link">Log out</a>';
+    right = '<a href="/feed.html">My feed</a>' + (user.role === 'fan' ? '' : '<a href="/dashboard.html">Dashboard</a>') +
+      '<span class="muted">' + esc(user.email) + '</span><a href="#" id="logout-link">Log out</a>';
   }
   const nav = document.createElement('header');
   nav.className = 'nav';
@@ -90,6 +90,11 @@ function renderNav() {
   document.body.prepend(nav);
   const link = document.getElementById('logout-link');
   if (link) link.addEventListener('click', function (e) { e.preventDefault(); logout(); });
+}
+
+// Where to go after login: fans get their feed, staff get the dashboard.
+function homeFor(user) {
+  return user && user.role === 'fan' ? '/feed.html' : '/dashboard.html';
 }
 
 // Pages that need a login call this first. Returns the user or redirects.

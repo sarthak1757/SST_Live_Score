@@ -1,4 +1,5 @@
 const user = requireLogin();
+if (user && user.role === 'fan') window.location.href = '/feed.html'; // dashboard is for staff only
 let tournaments = [];
 
 const tMsg = document.getElementById('t-msg');
@@ -104,7 +105,7 @@ async function loadMatches() {
 }
 
 async function init() {
-  if (!user) return;
+  if (!user || user.role === 'fan') return;
   if (user.role === 'admin') {
     document.getElementById('admin-area').hidden = false;
     try {

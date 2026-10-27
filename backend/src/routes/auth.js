@@ -5,7 +5,14 @@ const User = require('../models/User');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
 
+const { createLimiter } = require('../services/rateLimit');
+
 const router = express.Router();
+const signupPerIp = createLimiter(5, 60 * 60 * 1000); // 5 sign-ups per hour per IP
+
+function issueToken(user) {
+  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '12h' });
+}
 
 // Simple in-memory brute-force protection: 8 failed logins per IP+email per 10 minutes.
 const failures = {};
@@ -42,8 +49,23 @@ router.post(
     }
     delete failures[key];
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '12h' });
+    const token = issueToken(user);
     res.json({ token: token, user: { email: user.email, role: user.role } });
+  })
+);
+
+// POST /api/auth/signup { email, password } - public self sign-up, always creates a "fan"
+router.post(
+  '/signup',
+  wrap(async (req, res) => {
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 100) throw httpError(400, 'Enter a valid email');
+    if (password.length < 8 || password.length > 100) throw httpError(400, 'Password must be 8-100 characters');
+    if (!signupPerIp(req.ip)) throw httpError(429, 'Too many sign-ups from this network. Try again later.');
+    if (await User.findOne({ email: email })) throw httpError(409, 'An account with this email already exists');
+    const user = await User.create({ email: email, passwordHash: await bcrypt.hash(password, 10), role: 'fan' });
+    res.status(201).json({ token: issueToken(user), user: { email: user.email, role: user.role } });
   })
 );
 
