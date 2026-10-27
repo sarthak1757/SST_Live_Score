@@ -30,32 +30,6 @@ function fmtTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-// fetch wrapper: returns parsed JSON or throws an Error with a readable message.
-async function api(method, url, body) {
-  const headers = { 'Content-Type': 'application/json' };
-  const token = getToken();
-  if (token) headers.Authorization = 'Bearer ' + token;
-
-  let response;
-  try {
-    response = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
-  } catch (networkError) {
-    throw new Error('Cannot reach the server. Check your internet connection and try again.');
-  }
-
-  let data = null;
-  try { data = await response.json(); } catch (e) { /* empty body */ }
-
-  if (!response.ok) {
-    // Expired or invalid token on a protected call: send the user back to login.
-    if (response.status === 401 && token && url.indexOf('/api/auth/login') === -1) {
-      logout();
-    }
-    throw new Error((data && data.error) || 'Request failed (' + response.status + ')');
-  }
-  return data;
-}
-
 // Shows a message box inside an element. type: error | success | info. Pass '' to clear.
 function showMsg(el, type, text) {
   if (!text) { el.innerHTML = ''; return; }

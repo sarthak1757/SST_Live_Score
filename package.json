@@ -1,26 +1,17 @@
 {
   "name": "sst-live",
   "version": "1.0.0",
-  "description": "Live scoring platform for SST inter-house tournaments",
-  "main": "server.js",
+  "description": "Live scoring platform for SST inter-house tournaments (one deployment: Express serves the API and the static frontend)",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "seed": "node seed.js",
-    "test": "jest"
+    "postinstall": "npm install --prefix backend",
+    "start": "node backend/server.js",
+    "dev": "npm run dev --prefix backend",
+    "seed": "node backend/seed.js",
+    "test": "npm test --prefix backend"
   },
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT",
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "dotenv": "^18.0.9",
-    "express": "^5.3.0",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.11.4"
-  },
-  "devDependencies": {
-    "jest": "^30.5.2"
-  }
+  "license": "MIT"
 }

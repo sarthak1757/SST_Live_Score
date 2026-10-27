@@ -81,7 +81,7 @@ function render(snap) {
 
 function openStream() {
   // EventSource reconnects by itself; the server sends a full snapshot on every (re)connect.
-  const source = new EventSource('/api/matches/' + encodeURIComponent(matchId) + '/stream');
+  const source = new EventSource(apiUrl('/api/matches/' + encodeURIComponent(matchId) + '/stream'));
   source.addEventListener('open', function () { setConn('ok', 'Live'); });
   source.addEventListener('snapshot', function (e) {
     setConn('ok', 'Live');

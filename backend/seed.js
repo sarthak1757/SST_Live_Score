@@ -1,7 +1,7 @@
 // Creates (or updates) a login account.
 //   npm run seed                                  -> admin from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD in .env
 //   node seed.js scorer@sst.edu SomePass123 scorer -> extra scorer account
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const User = require('./src/models/User');

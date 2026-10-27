@@ -1,0 +1,27 @@
+{
+  "name": "sst-live-backend",
+  "version": "1.0.0",
+  "description": "Express + MongoDB API for SST Live",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js",
+    "test": "jest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.4"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2"
+  },
+  "license": "MIT"
+}

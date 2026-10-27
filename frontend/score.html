@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Match - SST Live</title>
+  <title>Score match - SST Live</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -12,15 +12,18 @@
   <div id="content" hidden>
     <div class="row between">
       <div id="meta" class="muted"></div>
-      <div><span id="conn" class="badge warn">Connecting...</span> <span id="state"></span></div>
+      <div id="state"></div>
     </div>
-    <div class="scoreboard" id="scoreboard"></div>
-    <div id="sets"></div>
-    <h2>Live feed</h2>
+        <div class="controls" id="controls"></div>
+    <div class="score-pad" id="pad"></div>
+    <div id="sets" style="margin-top:14px"></div>
+    <p><a id="public-link" href="#" target="_blank" rel="noopener">Open public view &rarr;</a></p>
+    <h2>Recent actions</h2>
     <ul class="feed" id="feed"></ul>
   </div>
 </main>
+<script src="/js/api.js"></script>
 <script src="/js/common.js"></script>
-<script src="/js/match.js"></script>
+<script src="/js/score.js"></script>
 </body>
 </html>
