@@ -5,6 +5,8 @@ let tournaments = [];
 const tMsg = document.getElementById('t-msg');
 const mMsg = document.getElementById('m-msg');
 const matchSelect = document.getElementById('m-tournament');
+const whenInput = document.getElementById('m-when');
+attachDateTimePicker(whenInput);
 
 function fillSelect(select, items, valueKey, textKey) {
   select.innerHTML = '';
@@ -148,12 +150,13 @@ document.getElementById('match-form').addEventListener('submit', async function 
   e.preventDefault();
   showMsg(mMsg, '', '');
   if (tournaments.length === 0) { showMsg(mMsg, 'error', 'Create a tournament first.'); return; }
+  if (!whenInput.dataset.iso) { showMsg(mMsg, 'error', 'Pick a date and time first.'); return; }
   try {
     await api('POST', '/api/matches', {
       tournament: matchSelect.value,
       teamA: document.getElementById('m-a').value,
       teamB: document.getElementById('m-b').value,
-      scheduledAt: new Date(document.getElementById('m-when').value).toISOString(),
+      scheduledAt: new Date(whenInput.dataset.iso).toISOString(),
     });
     showMsg(mMsg, 'success', 'Match scheduled.');
     loadMatches();

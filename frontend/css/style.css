@@ -365,3 +365,25 @@ table.standings td.tname a { color: inherit; }
 
 .jersey-big { font-family: var(--font-num); font-size: 2.2rem; background: var(--blue); color: var(--on-blue); border: 0; }
 a.plain { color: inherit; }
+
+/* ---------- Date + time picker popup ---------- */
+.dp-wrap { position: relative; }
+.dp-input { cursor: pointer; }
+.dp-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; width: 300px; max-width: 92vw; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.65); }
+.dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.dp-head strong { font-size: .95rem; }
+.dp-nav { width: 32px; height: 32px; padding: 0; border-radius: 50%; background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 1.2rem; line-height: 1; letter-spacing: 0; }
+.dp-nav:hover:not(:disabled) { background: var(--blue); border-color: var(--blue); color: var(--on-blue); filter: none; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.dp-dow span { font-size: .66rem; letter-spacing: .12em; color: var(--muted); padding: 4px 0; font-weight: 700; }
+.dp-day { padding: 0; height: 34px; border: 2px solid transparent; border-radius: 50%; background: transparent; color: var(--text); font-size: .85rem; font-weight: 600; letter-spacing: 0; }
+.dp-day:hover:not(:disabled) { background: var(--blue); color: var(--on-blue); filter: none; }
+.dp-day.today { border-color: var(--blue); }
+.dp-day.sel, .dp-day.sel:hover { background: var(--lime); color: var(--on-lime); border-color: var(--lime); }
+.dp-day:disabled { color: var(--muted); opacity: .35; }
+.dp-time { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.dp-time label { margin: 0 auto 0 0 !important; font-size: .68rem !important; }
+.dp-time select { width: auto; padding: 7px 8px; border-radius: 10px; }
+.dp-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.dp-foot .muted { font-size: .78rem; }
+.dp-apply { padding: 8px 18px; }

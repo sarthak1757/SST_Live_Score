@@ -73,3 +73,22 @@ describe('player stats', () => {
     expect(samePlayer(list, list[0]).map((p) => p.id)).toEqual(['1', '2']);
   });
 });
+
+describe('date picker helpers (frontend/js/datepicker.js)', () => {
+  const { dpMonthGrid, dpToIso } = require('../../frontend/js/datepicker.js');
+
+  test('month grid is Monday-first with the right offset and length (incl. leap February)', () => {
+    const oct = dpMonthGrid(2026, 9); // 1 Oct 2026 is a Thursday -> 3 empty cells
+    expect(oct[0].slice(0, 4)).toEqual([null, null, null, 1]);
+    expect(oct.flat().filter(Boolean)).toHaveLength(31);
+    expect(oct.every((row) => row.length === 7)).toBe(true);
+    expect(dpMonthGrid(2028, 1).flat().filter(Boolean)).toHaveLength(29); // leap year
+    expect(dpMonthGrid(2026, 1).flat().filter(Boolean)).toHaveLength(28);
+  });
+
+  test('12-hour time converts to a local ISO string, including 12 AM / 12 PM', () => {
+    expect(dpToIso(2026, 9, 28, 4, 5, true)).toBe('2026-10-28T16:05');
+    expect(dpToIso(2026, 0, 1, 12, 0, false)).toBe('2026-01-01T00:00');
+    expect(dpToIso(2026, 0, 1, 12, 30, true)).toBe('2026-01-01T12:30');
+  });
+});
