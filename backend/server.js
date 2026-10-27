@@ -7,6 +7,8 @@ const { notFound, errorHandler } = require('./src/middleware/errors');
 
 const app = express();
 app.disable('x-powered-by');
+// Render runs behind one proxy: use the real client IP for rate limits.
+app.set('trust proxy', 1);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');

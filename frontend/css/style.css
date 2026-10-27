@@ -202,3 +202,15 @@ a.slot:hover { text-decoration: none; border-color: var(--pink); }
 .champion { background: var(--lime); color: var(--black); font-family: var(--font-head); text-transform: uppercase; font-size: 1.6rem; padding: 14px 18px; border-radius: 16px; margin-bottom: 14px; }
 .stage { color: var(--lime); }
 @media (max-width: 560px) { .bracket { grid-template-columns: 1fr; } }
+
+/* ---------- Reactions and fan chat ---------- */
+.reactions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 4px 0 8px; }
+button.react { border-color: var(--line); color: var(--text); font-size: 1.15rem; letter-spacing: 0; padding: 10px 20px; min-width: 92px; }
+button.react span { font-family: var(--font-head); color: var(--lime); font-size: 1.1rem; }
+button.react:hover:not(:disabled) span { color: var(--black); }
+button.react.bump { animation: bump .4s ease; }
+@keyframes bump { 50% { transform: scale(1.2); } }
+.comment-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.comment-row input { flex: 1; }
+button.mini { padding: 3px 10px; font-size: .62rem; margin-left: 6px; }
+ul.comments li:first-child { background: transparent; }

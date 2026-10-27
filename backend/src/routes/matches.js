@@ -9,6 +9,16 @@ const { wrap, httpError } = require('../middleware/errors');
 const { computeScore, getWinner, undoLast, canTransition } = require('../services/scoring');
 const { buildSnapshot, listWithScores } = require('../services/snapshot');
 const sse = require('../services/sse');
+const Comment = require('../models/Comment');
+const User = require('../models/User');
+const { createLimiter } = require('../services/rateLimit');
+const engagement = require('../services/engagement');
+
+// Reactions: 1 per 1.5s per browser, and 60 per minute per IP (so a script can't fake many browsers).
+const reactPerBrowser = createLimiter(1, 1500);
+const reactPerIp = createLimiter(60, 60 * 1000);
+// Comments: 3 per 30s per user.
+const commentPerUser = createLimiter(3, 30 * 1000);
 
 const router = express.Router();
 const STATUSES = ['scheduled', 'live', 'finished'];
@@ -226,6 +236,75 @@ router.delete(
     const removed = await Match.findOneAndDelete({ _id: match._id, status: 'scheduled' });
     if (!removed) throw httpError(409, 'Match has just been started and cannot be deleted');
     res.json({ ok: true });
+  })
+);
+
+// ---------- Fan engagement ----------
+
+// POST /api/matches/:id/reactions (public) { type: fire|clap|wow, clientId }
+router.post(
+  '/:id/reactions',
+  wrap(async (req, res) => {
+    const type = engagement.validateReaction(req.body.type);
+    const clientId = engagement.validateClientId(req.body.clientId);
+    const match = await findMatchOr404(req.params.id);
+    if (match.status !== 'live') throw httpError(409, 'Reactions are open only while the match is live');
+    if (!reactPerBrowser(match._id + '|' + clientId) || !reactPerIp(req.ip)) {
+      throw httpError(429, 'Slow down - one reaction every couple of seconds');
+    }
+    const inc = {};
+    inc['reactions.' + type] = 1;
+    const updated = await Match.findByIdAndUpdate(match._id, { $inc: inc }, { returnDocument: 'after' });
+    const counts = { fire: updated.reactions.fire, clap: updated.reactions.clap, wow: updated.reactions.wow };
+    sse.broadcast(match._id, counts, 'reactions');
+    res.json({ reactions: counts });
+  })
+);
+
+async function latestComments(matchId) {
+  const list = await Comment.find({ match: matchId }).sort({ createdAt: -1 }).limit(50).lean();
+  return list.map(function (c) { return { id: c._id, author: c.author, text: c.text, time: c.createdAt }; });
+}
+
+// GET /api/matches/:id/comments (public)
+router.get(
+  '/:id/comments',
+  wrap(async (req, res) => {
+    const match = await findMatchOr404(req.params.id);
+    res.json({ comments: await latestComments(match._id) });
+  })
+);
+
+// POST /api/matches/:id/comments (any signed-in user) { text }
+router.post(
+  '/:id/comments',
+  requireAuth,
+  wrap(async (req, res) => {
+    const text = engagement.validateComment(req.body.text);
+    const match = await findMatchOr404(req.params.id);
+    if (!commentPerUser(String(req.user.id))) throw httpError(429, 'You are commenting too fast. Wait a few seconds.');
+    const user = await User.findById(req.user.id);
+    if (!user) throw httpError(401, 'Account no longer exists');
+    await Comment.create({ match: match._id, user: user._id, author: engagement.displayName(user.email), text: text });
+    const comments = await latestComments(match._id);
+    sse.broadcast(match._id, comments, 'comments');
+    res.status(201).json({ comments: comments });
+  })
+);
+
+// DELETE /api/matches/:id/comments/:commentId (admin)
+router.delete(
+  '/:id/comments/:commentId',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.commentId)) throw httpError(400, 'Invalid comment id');
+    const match = await findMatchOr404(req.params.id);
+    const removed = await Comment.findOneAndDelete({ _id: req.params.commentId, match: match._id });
+    if (!removed) throw httpError(404, 'Comment not found');
+    const comments = await latestComments(match._id);
+    sse.broadcast(match._id, comments, 'comments');
+    res.json({ comments: comments });
   })
 );
 

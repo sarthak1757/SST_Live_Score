@@ -23,14 +23,15 @@ function subscribe(matchId, req, res, firstSnapshot) {
   });
 }
 
-function send(res, data) {
-  res.write('event: snapshot\ndata: ' + JSON.stringify(data) + '\n\n');
+// eventName: 'snapshot' (score + feed), 'reactions' (counts) or 'comments' (latest comments)
+function send(res, data, eventName) {
+  res.write('event: ' + (eventName || 'snapshot') + '\ndata: ' + JSON.stringify(data) + '\n\n');
 }
 
-function broadcast(matchId, data) {
+function broadcast(matchId, data, eventName) {
   const list = subscribers[String(matchId)] || [];
   for (let i = 0; i < list.length; i++) {
-    send(list[i], data);
+    send(list[i], data, eventName);
   }
 }
 

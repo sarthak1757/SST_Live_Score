@@ -22,6 +22,12 @@ const matchSchema = new mongoose.Schema(
     // set when finished: 'a', 'b' or 'draw'
     winner: { type: String, enum: ['a', 'b', 'draw', null], default: null },
     finalScore: { a: Number, b: Number },
+    // live fan reaction counts
+    reactions: {
+      fire: { type: Number, default: 0 },
+      clap: { type: Number, default: 0 },
+      wow: { type: Number, default: 0 },
+    },
     startedAt: Date,
     finishedAt: Date,
   },

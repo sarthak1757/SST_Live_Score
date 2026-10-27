@@ -3,7 +3,91 @@ const statusBox = document.getElementById('status');
 const content = document.getElementById('content');
 const connBadge = document.getElementById('conn');
 
-let last = null; // previous score, used to flash only the side that changed
+let last = null;
+let matchStatus = null;
+let reactionCounts = { fire: 0, clap: 0, wow: 0 };
+const REACTIONS = [{ key: 'fire', emoji: '\uD83D\uDD25' }, { key: 'clap', emoji: '\uD83D\uDC4F' }, { key: 'wow', emoji: '\uD83D\uDE2E' }];
+
+// Random id kept in this browser, used by the server to rate-limit reactions.
+function clientId() {
+  let id = localStorage.getItem('sst_client');
+  if (!id) {
+    id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(36).slice(2, 12);
+    localStorage.setItem('sst_client', id);
+  }
+  return id;
+}
+
+function renderReactions(bump) {
+  const live = matchStatus === 'live';
+  document.getElementById('reactions').innerHTML = REACTIONS.map(function (r) {
+    return '<button class="react' + (bump === r.key ? ' bump' : '') + '" data-r="' + r.key + '"' + (live ? '' : ' disabled title="Reactions open while the match is live"') + '>' +
+      r.emoji + ' <span>' + reactionCounts[r.key] + '</span></button>';
+  }).join('');
+}
+
+document.getElementById('reactions').addEventListener('click', async function (e) {
+  const btn = e.target.closest('button[data-r]');
+  if (!btn || btn.disabled) return;
+  try {
+    const data = await api('POST', '/api/matches/' + matchId + '/reactions', { type: btn.dataset.r, clientId: clientId() });
+    reactionCounts = data.reactions;
+    renderReactions(btn.dataset.r);
+  } catch (err) { toast('error', err.message); }
+});
+
+// ---- comments
+function renderComments(list) {
+  const user = getUser();
+  const isAdmin = user && user.role === 'admin' && getToken();
+  const box = document.getElementById('comments');
+  if (list.length === 0) { box.innerHTML = '<li class="muted">No comments yet. Be the first!</li>'; return; }
+  box.innerHTML = list.map(function (c) {
+    return '<li><span><strong>' + esc(c.author) + '</strong> ' + esc(c.text) + '</span><span class="muted">' + fmtTime(c.time) +
+      (isAdmin ? ' <button class="secondary mini" data-del="' + c.id + '">Delete</button>' : '') + '</span></li>';
+  }).join('');
+}
+
+function renderCommentForm() {
+  const box = document.getElementById('comment-form');
+  if (!getUser() || !getToken()) {
+    box.innerHTML = '<p class="muted"><a href="/login.html">Log in</a> to join the chat.</p>';
+    return;
+  }
+  box.innerHTML = '<form class="comment-row" id="c-form"><input id="c-text" maxlength="200" placeholder="Say something (max 200 characters)" required><button type="submit" id="c-send">Send</button></form>';
+  document.getElementById('c-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const input = document.getElementById('c-text');
+    const send = document.getElementById('c-send');
+    send.disabled = true;
+    try {
+      const data = await api('POST', '/api/matches/' + matchId + '/comments', { text: input.value });
+      input.value = '';
+      renderComments(data.comments);
+    } catch (err) { toast('error', err.message); }
+    send.disabled = false;
+  });
+}
+
+document.getElementById('comments').addEventListener('click', async function (e) {
+  const btn = e.target.closest('button[data-del]');
+  if (!btn) return;
+  if (!(await confirmDialog('Delete comment?', 'It will be removed for everyone.', 'Delete'))) return;
+  try {
+    const data = await api('DELETE', '/api/matches/' + matchId + '/comments/' + btn.dataset.del);
+    renderComments(data.comments);
+    toast('success', 'Comment deleted.');
+  } catch (err) { toast('error', err.message); }
+});
+
+async function loadComments() {
+  try {
+    const data = await api('GET', '/api/matches/' + encodeURIComponent(matchId) + '/comments');
+    renderComments(data.comments);
+  } catch (err) {
+    document.getElementById('comments').innerHTML = '<li class="msg error">' + esc(err.message) + '</li>';
+  }
+} // previous score, used to flash only the side that changed
 
 function setConn(kind, text) {
   connBadge.className = 'badge ' + kind;
@@ -23,6 +107,10 @@ function render(snap) {
   document.getElementById('meta').innerHTML = sportIcon(m.sport) + ' ' + esc(m.sportLabel) + ' · <a href="/tournament.html?id=' + m.tournament + '">' +
     esc(m.tournamentName) + '</a> · ' + fmtDate(m.scheduledAt);
   document.getElementById('state').innerHTML = statusBadge(m.status);
+
+  matchStatus = m.status;
+  reactionCounts = m.reactions || reactionCounts;
+  renderReactions();
 
   const isSetSport = s.currentSet !== null;
   const aWon = m.status === 'finished' && m.winner === 'a';
@@ -98,6 +186,11 @@ function openStream() {
     setConn('ok', 'Live');
     render(JSON.parse(e.data));
   });
+  source.addEventListener('reactions', function (e) {
+    reactionCounts = JSON.parse(e.data);
+    renderReactions();
+  });
+  source.addEventListener('comments', function (e) { renderComments(JSON.parse(e.data)); });
   source.addEventListener('error', function () {
     if (source.readyState === EventSource.CLOSED) setConn('warn', 'Disconnected - refresh the page');
     else setConn('warn', 'Reconnecting...');
@@ -114,6 +207,8 @@ async function start() {
     statusBox.innerHTML = '';
     content.hidden = false;
     render(snap);
+    renderCommentForm();
+    loadComments();
     openStream();
   } catch (err) {
     statusBox.innerHTML = '<div class="msg error">' + esc(err.message) + ' <a href="/">Go home</a></div>';

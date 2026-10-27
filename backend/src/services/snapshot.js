@@ -17,6 +17,7 @@ function publicMatch(m) {
     status: m.status,
     winner: m.winner,
     finalScore: m.finalScore,
+    reactions: { fire: (m.reactions && m.reactions.fire) || 0, clap: (m.reactions && m.reactions.clap) || 0, wow: (m.reactions && m.reactions.wow) || 0 },
     startedAt: m.startedAt,
     finishedAt: m.finishedAt,
   };
