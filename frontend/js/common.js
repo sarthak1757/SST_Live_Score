@@ -97,20 +97,93 @@ function confirmDialog(title, text, okLabel) {
   });
 }
 
-// Top navigation bar.
+// Links to team and player pages (one place, so pages can change later).
+function teamUrl(name) { return '/teams.html?q=' + encodeURIComponent(name); }
+function playerUrl(p) { return '/players.html?q=' + encodeURIComponent(p.name); }
+
+// App shell: left sidebar + top bar with global search. Built on every page.
 function renderNav() {
   const user = getUser();
-  let right = '<a href="/signup.html">Sign up</a><a href="/login.html">Log in</a>';
-  if (user && getToken()) {
-    right = '<a href="/feed.html">My feed</a>' + (user.role === 'fan' ? '' : '<a href="/dashboard.html">Dashboard</a>') + (user.role === 'admin' ? '<a href="/audit.html">Audit</a>' : '') +
-      '<span class="muted">' + esc(user.email) + '</span><a href="#" id="logout-link">Log out</a>';
+  const signedIn = !!(user && getToken());
+  const staff = signedIn && (user.role === 'admin' || user.role === 'scorer');
+  const links = [
+    { href: '/', label: 'Home', icon: '\u2302' },
+    { href: '/?status=live', label: 'Live', icon: '\u25CF', live: true },
+    { href: '/tournaments.html', label: 'Tournaments', icon: '\uD83C\uDFC6' },
+    { href: '/teams.html', label: 'Teams', icon: '\uD83D\uDEE1' },
+    { href: '/players.html', label: 'Players', icon: '\uD83D\uDC64' },
+    { href: '/feed.html', label: 'My Feed', icon: '\u2605' },
+  ];
+  if (staff) links.push({ href: '/dashboard.html', label: 'Admin', icon: '\u2699' });
+  if (signedIn && user.role === 'admin') links.push({ href: '/audit.html', label: 'Audit log', icon: '\u2630', sub: true });
+
+  const path = window.location.pathname;
+  const isLiveView = path === '/' && new URLSearchParams(window.location.search).get('status') === 'live';
+  function active(l) {
+    if (l.live) return isLiveView;
+    if (l.href === '/') return (path === '/' || path === '/index.html') && !isLiveView;
+    return path === l.href;
   }
-  const nav = document.createElement('header');
-  nav.className = 'nav';
-  nav.innerHTML = '<a class="brand" href="/">SST LIVE</a><a href="/">Matches</a><span class="spacer"></span>' + right;
-  document.body.prepend(nav);
+
+  const side = document.createElement('aside');
+  side.className = 'sidebar';
+  side.innerHTML = '<a class="brand" href="/">SST <span>LIVE</span></a><nav>' + links.map(function (l) {
+    return '<a href="' + l.href + '" class="' + (active(l) ? 'active ' : '') + (l.sub ? 'sub ' : '') + (l.live ? 'live-link' : '') + '"><span class="ico">' + l.icon + '</span>' + l.label + '</a>';
+  }).join('') + '</nav>';
+
+  const top = document.createElement('header');
+  top.className = 'topbar';
+  const account = signedIn
+    ? '<span class="who" title="' + esc(user.email) + '">' + esc(user.email.split('@')[0]) + ' <span class="badge finished">' + esc(user.role) + '</span></span><a href="#" id="logout-link">Log out</a>'
+    : '<a href="/signup.html">Sign up</a><a href="/login.html" class="btn small">Log in</a>';
+  top.innerHTML = '<button class="menu-btn secondary" id="menu-btn" aria-label="Menu">\u2630</button>' +
+    '<div class="search"><input id="global-search" type="search" placeholder="Search teams, players, tournaments..." autocomplete="off" maxlength="50" aria-label="Search">' +
+    '<div class="search-results" id="search-results" hidden></div></div><div class="account">' + account + '</div>';
+
+  document.body.classList.add('app');
+  document.body.prepend(top);
+  document.body.prepend(side);
+
+  document.getElementById('menu-btn').onclick = function () { document.body.classList.toggle('nav-open'); };
   const link = document.getElementById('logout-link');
   if (link) link.addEventListener('click', function (e) { e.preventDefault(); logout(); });
+  setupSearch();
+}
+
+// Global search with a small dropdown (debounced).
+function setupSearch() {
+  const input = document.getElementById('global-search');
+  const box = document.getElementById('search-results');
+  let timer = null;
+  let lastQuery = '';
+
+  function group(title, items, html) {
+    return items.length ? '<div class="sr-group">' + title + '</div>' + items.map(html).join('') : '';
+  }
+  async function run(q) {
+    lastQuery = q;
+    box.hidden = false;
+    box.innerHTML = '<div class="sr-empty">Searching...</div>';
+    try {
+      const r = await api('GET', '/api/search?q=' + encodeURIComponent(q));
+      if (q !== lastQuery) return; // a newer search is running
+      const html =
+        group('Tournaments', r.tournaments, function (t) { return '<a href="/tournament.html?id=' + t.id + '">' + sportIcon(t.sport) + ' ' + esc(t.name) + '</a>'; }) +
+        group('Teams', r.teams, function (t) { return '<a href="' + teamUrl(t.name) + '">\uD83D\uDEE1 ' + esc(t.name) + ' <span class="muted">' + esc(t.sports.join(', ')) + '</span></a>'; }) +
+        group('Players', r.players, function (p) { return '<a href="' + playerUrl(p) + '">#' + p.jersey + ' ' + esc(p.name) + ' <span class="muted">' + esc(p.team) + ' \u00B7 ' + esc(p.tournamentName) + '</span></a>'; });
+      box.innerHTML = html || '<div class="sr-empty">No results for "' + esc(q) + '"</div>';
+    } catch (err) {
+      box.innerHTML = '<div class="sr-empty">' + esc(err.message) + '</div>';
+    }
+  }
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { box.hidden = true; return; }
+    timer = setTimeout(function () { run(q); }, 250);
+  });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { box.hidden = true; input.blur(); } });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.search')) box.hidden = true; });
 }
 
 // Where to go after login: fans get their feed, staff get the dashboard.

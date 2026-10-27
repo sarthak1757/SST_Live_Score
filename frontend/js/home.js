@@ -9,6 +9,25 @@ const SECTIONS = [
 ];
 
 let currentSport = '';
+const onlyStatus = new URLSearchParams(window.location.search).get('status'); // "live" from the sidebar
+
+async function loadStats() {
+  const box = document.getElementById('stat-cards');
+  try {
+    const st = await api('GET', '/api/stats');
+    const cards = [
+      { n: st.live, label: 'Live now', href: '/?status=live', hot: st.live > 0 },
+      { n: st.upcoming, label: 'Upcoming', href: '/#matches' },
+      { n: st.finished, label: 'Results', href: '/#matches' },
+      { n: st.tournaments, label: 'Tournaments', href: '/tournaments.html' },
+      { n: st.teams, label: 'Houses', href: '/teams.html' },
+      { n: st.players, label: 'Players', href: '/players.html' },
+    ];
+    box.innerHTML = cards.map(function (c) {
+      return '<a class="stat-card' + (c.hot ? ' hot' : '') + '" href="' + c.href + '"><b>' + c.n + '</b><span>' + c.label + '</span></a>';
+    }).join('');
+  } catch (err) { box.innerHTML = ''; }
+}
 
 async function loadSports() {
   try {
@@ -52,6 +71,7 @@ function renderMatches(matches) {
   }
   let html = '';
   SECTIONS.forEach(function (section) {
+    if (onlyStatus && section.status !== onlyStatus) return;
     const list = matches.filter(function (m) { return m.status === section.status; });
     if (section.status === 'finished') list.reverse(); // newest result first
     html += '<h2>' + section.title + (list.length ? ' <span class="count">' + list.length + '</span>' : '') + '</h2>';
@@ -79,6 +99,7 @@ async function loadTournaments() {
 
 
 loadSports();
+loadStats();
 loadMatches(true);
 loadTournaments();
-setInterval(function () { loadMatches(false); }, 10000); // keep the list fresh
+setInterval(function () { loadMatches(false); loadStats(); }, 10000); // keep the list fresh
