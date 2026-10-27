@@ -14,9 +14,9 @@ async function call(method, path, body, okText) {
   render();
   try {
     snap = await api(method, '/api/matches/' + matchId + path, body);
-    showMsg(msg, 'success', okText);
+    toast('success', okText);
   } catch (err) {
-    showMsg(msg, 'error', err.message);
+    toast('error', err.message);
     // state may have changed under us (e.g. another scorer finished the match) - re-sync
     try { snap = await api('GET', '/api/matches/' + matchId); } catch (e2) { /* keep old state */ }
   }
@@ -31,16 +31,16 @@ function render() {
   const live = m.status === 'live';
   const open = live && !s.matchDecided && !busy;
 
-  document.getElementById('meta').textContent = m.tournamentName + ' · ' + m.sportLabel;
+  document.getElementById('meta').textContent = sportIcon(m.sport) + ' ' + m.tournamentName + ' · ' + m.sportLabel;
   document.getElementById('state').innerHTML = statusBadge(m.status);
   document.getElementById('public-link').href = '/match.html?id=' + m.id;
 
   // Start / Undo / End set / Finish
   let controls = '';
-  controls += '<button class="success" id="btn-start"' + (m.status === 'scheduled' && !busy ? '' : ' disabled') + '>Start match</button>';
-  controls += '<button class="secondary" id="btn-undo"' + (live && snap.events.length > 0 && !busy ? '' : ' disabled') + '>Undo last</button>';
+  controls += '<button class="success" id="btn-start"' + (m.status === 'scheduled' && !busy ? '' : ' disabled') + '>\u25B6 Start match</button>';
+  controls += '<button class="secondary" id="btn-undo"' + (live && snap.events.length > 0 && !busy ? '' : ' disabled') + '>\u21B6 Undo last</button>';
   if (config.sets) controls += '<button class="secondary" id="btn-endset"' + (open ? '' : ' disabled') + '>End set</button>';
-  controls += '<button class="danger" id="btn-finish"' + (live && !busy ? '' : ' disabled') + '>Finish match</button>';
+  controls += '<button class="danger" id="btn-finish"' + (live && !busy ? '' : ' disabled') + '>\u23F9 Finish match</button>';
   document.getElementById('controls').innerHTML = controls;
 
   // One column per team, buttons come from the sports config
@@ -50,7 +50,7 @@ function render() {
     const actionButtons = Object.keys(config.actions).map(function (key) {
       return '<button data-team="' + team.id + '" data-type="' + key + '"' + (open ? '' : ' disabled') + '>' + esc(config.actions[key].label) + '</button>';
     }).join('');
-    pad += '<div class="team"><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + actionButtons + '</div>';
+    pad += '<div class="team" style="--team:' + teamColor(team.name) + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + actionButtons + '</div>';
   });
   document.getElementById('pad').innerHTML = pad;
 
@@ -77,8 +77,9 @@ function render() {
   // wire up buttons
   document.getElementById('btn-start').onclick = function () { call('POST', '/start', null, 'Match started.'); };
   document.getElementById('btn-undo').onclick = function () { call('DELETE', '/events/last', null, 'Last action undone.'); };
-  document.getElementById('btn-finish').onclick = function () {
-    if (confirm('Finish this match? You cannot score after this.')) call('POST', '/finish', null, 'Match finished.');
+  document.getElementById('btn-finish').onclick = async function () {
+    const text = 'Final score: ' + m.teamA.name + ' ' + s.a + ' - ' + s.b + ' ' + m.teamB.name + '. Scoring will be closed and the result added to the standings.';
+    if (await confirmDialog('Finish this match?', text, 'Yes, finish')) call('POST', '/finish', null, 'Match finished.');
   };
   const endSet = document.getElementById('btn-endset');
   if (endSet) endSet.onclick = function () { call('POST', '/events', { type: 'end_set' }, 'Set ended.'); };
