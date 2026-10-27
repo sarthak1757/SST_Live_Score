@@ -13,15 +13,18 @@ async function load() {
     content.hidden = false;
     document.title = data.tournament.name + ' - SST Live';
     document.getElementById('title').textContent = data.tournament.name;
-    document.getElementById('subtitle').textContent = data.tournament.sportLabel;
+    document.getElementById('subtitle').textContent = sportIcon(data.tournament.sport) + ' ' + data.tournament.sportLabel + ' · ' + data.tournament.teams.length + ' teams';
 
     let rows = '';
+    const anyPlayed = data.standings.some(function (r) { return r.played > 0; });
     data.standings.forEach(function (r, i) {
-      rows += '<tr><td>' + (i + 1) + '. ' + esc(r.name) + '</td><td>' + r.played + '</td><td>' + r.won + '</td><td>' +
-        r.drawn + '</td><td>' + r.lost + '</td><td><strong>' + r.points + '</strong></td></tr>';
+      const leader = anyPlayed && i === 0;
+      rows += '<tr class="' + (leader ? 'leader' : '') + '"><td class="rank">' + (leader ? '\uD83D\uDC51' : i + 1) + '</td><td class="tname">' +
+        teamChip(r.name) + esc(r.name) + '</td><td>' + r.played + '</td><td>' + r.won + '</td><td>' + r.drawn + '</td><td>' + r.lost +
+        '</td><td class="pts-cell">' + r.points + '</td></tr>';
     });
     document.getElementById('standings').innerHTML =
-      '<table><thead><tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      '<table class="standings"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead><tbody>' + rows + '</tbody></table>';
 
     const matchesBox = document.getElementById('matches');
     if (data.matches.length === 0) {
