@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tournament - SST Live</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main>
+  <div id="status"><div class="empty">Loading tournament...</div></div>
+  <div id="content" hidden>
+    <h1 id="title"></h1>
+    <p class="muted" id="subtitle"></p>
+    <h2>Standings</h2>
+    <div id="standings"></div>
+    <p class="muted">Win = 3 points, draw = 1, loss = 0. Only finished matches count.</p>
+    <h2>Matches</h2>
+    <div id="matches"></div>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script src="/js/tournament.js"></script>
+</body>
+</html>

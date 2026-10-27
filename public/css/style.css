@@ -1,0 +1,58 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #f3f5f9; color: #1c2333; line-height: 1.45; }
+a { color: #1d4ed8; text-decoration: none; }
+a:hover { text-decoration: underline; }
+header.nav { background: #12203f; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+header.nav .brand { font-weight: 700; font-size: 1.15rem; color: #fff; }
+header.nav a { color: #cbd5f5; }
+header.nav .spacer { flex: 1; }
+main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { font-size: 1.5rem; margin: 8px 0 16px; }
+h2 { font-size: 1.15rem; margin: 28px 0 10px; }
+.card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 12px; }
+.card.link { display: block; color: inherit; }
+.card.link:hover { text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.muted { color: #667085; font-size: .9rem; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .75rem; font-weight: 600; text-transform: uppercase; }
+.badge.live { background: #fee2e2; color: #b91c1c; }
+.badge.scheduled { background: #e0e7ff; color: #3730a3; }
+.badge.finished { background: #e5e7eb; color: #374151; }
+.badge.ok { background: #dcfce7; color: #166534; }
+.badge.warn { background: #fef3c7; color: #92400e; }
+.score { font-size: 1.6rem; font-weight: 700; white-space: nowrap; }
+.teams { flex: 1; min-width: 160px; }
+.big-score { text-align: center; padding: 20px 10px; }
+.big-score .names { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+.big-score .team-name { font-size: 1.2rem; font-weight: 600; }
+.big-score .num { font-size: 3rem; font-weight: 800; }
+.winner { color: #15803d; }
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+th, td { padding: 9px 10px; text-align: center; border-bottom: 1px solid #eef0f4; }
+th:first-child, td:first-child { text-align: left; }
+th { background: #eef1f8; font-size: .8rem; text-transform: uppercase; color: #475467; }
+form.card label { display: block; font-weight: 600; margin: 10px 0 4px; font-size: .9rem; }
+input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid #c8cfdc; border-radius: 7px; font: inherit; background: #fff; }
+button, .btn { padding: 9px 16px; border: 0; border-radius: 7px; background: #1d4ed8; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+button:hover:not(:disabled) { background: #1e40af; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.secondary { background: #e5e7eb; color: #1c2333; }
+button.danger { background: #b91c1c; }
+button.success { background: #15803d; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.filters select { width: auto; min-width: 150px; }
+.msg { padding: 10px 12px; border-radius: 7px; margin: 10px 0; font-size: .92rem; }
+.msg.error { background: #fee2e2; color: #991b1b; }
+.msg.success { background: #dcfce7; color: #166534; }
+.msg.info { background: #e0e7ff; color: #3730a3; }
+.empty { text-align: center; color: #667085; padding: 28px 10px; }
+.score-pad { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.score-pad .team { background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.score-pad h3 { margin: 0 0 4px; }
+.score-pad .num { font-size: 2.4rem; font-weight: 800; margin-bottom: 8px; }
+.score-pad button { display: block; width: 100%; margin-bottom: 8px; padding: 14px; font-size: 1.05rem; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+ul.feed { list-style: none; padding: 0; margin: 0; }
+ul.feed li { background: #fff; padding: 9px 12px; border-bottom: 1px solid #eef0f4; display: flex; justify-content: space-between; gap: 10px; }
+@media (max-width: 520px) { .score-pad { grid-template-columns: 1fr; } .big-score .num { font-size: 2.2rem; } }

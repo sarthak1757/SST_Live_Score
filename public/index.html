@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SST Live - Inter-house scores</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main>
+  <h1>Matches</h1>
+  <div class="filters">
+    <select id="filter-status">
+      <option value="">All statuses</option>
+      <option value="live">Live</option>
+      <option value="scheduled">Upcoming</option>
+      <option value="finished">Finished</option>
+    </select>
+    <select id="filter-sport"><option value="">All sports</option></select>
+  </div>
+  <div id="matches"><div class="empty">Loading matches...</div></div>
+
+  <h2>Tournaments</h2>
+  <div id="tournaments"><div class="empty">Loading tournaments...</div></div>
+</main>
+<script src="/js/common.js"></script>
+<script src="/js/home.js"></script>
+</body>
+</html>

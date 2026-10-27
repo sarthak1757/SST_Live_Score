@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Match - SST Live</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main>
+  <div id="status"><div class="empty">Loading match...</div></div>
+  <div id="content" hidden>
+    <div class="row between">
+      <div id="meta" class="muted"></div>
+      <div><span id="conn" class="badge warn">Connecting...</span> <span id="state"></span></div>
+    </div>
+    <div class="card big-score" id="scoreboard"></div>
+    <div id="sets"></div>
+    <h2>Event feed</h2>
+    <ul class="feed" id="feed"></ul>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script src="/js/match.js"></script>
+</body>
+</html>
