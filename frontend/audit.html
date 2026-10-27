@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audit log - SST Live</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<main>
+  <h1>Audit log</h1>
+  <p class="muted" style="margin-top:-8px">Every scoring action, undo and admin change: who, what and when.</p>
+  <div id="denied"></div>
+  <div id="picker" class="card row" hidden>
+    <div style="flex:1;min-width:160px"><label class="muted" for="a-tournament">Tournament</label><select id="a-tournament"></select></div>
+    <div style="flex:2;min-width:200px"><label class="muted" for="a-match">Match</label><select id="a-match"></select></div>
+  </div>
+  <div id="log"></div>
+</main>
+<script src="/js/api.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/audit.js"></script>
+</body>
+</html>

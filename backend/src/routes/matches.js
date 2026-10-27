@@ -13,6 +13,7 @@ const Comment = require('../models/Comment');
 const User = require('../models/User');
 const { createLimiter } = require('../services/rateLimit');
 const engagement = require('../services/engagement');
+const audit = require('../services/audit');
 
 // Reactions: 1 per 1.5s per browser, and 60 per minute per IP (so a script can't fake many browsers).
 const reactPerBrowser = createLimiter(1, 1500);
@@ -89,6 +90,7 @@ router.post(
       teamB: { id: teamB._id, name: teamB.name },
       scheduledAt: when,
     });
+    await audit.record(req, 'match.create', { match: match._id, tournament: tournament._id }, { summary: teamA.name + ' vs ' + teamB.name });
     res.status(201).json(await buildSnapshot(match));
   })
 );
@@ -127,6 +129,7 @@ router.post(
       { returnDocument: 'after' }
     );
     if (!updated) throw httpError(409, 'Match was already started');
+    await audit.record(req, 'match.start', { match: updated._id, tournament: updated.tournament });
     await respondAndBroadcast(res, updated);
   })
 );
@@ -152,6 +155,8 @@ router.post(
       { returnDocument: 'after' }
     );
     if (!updated) throw httpError(409, 'Match was already finished');
+    const winnerName = winner === 'a' ? updated.teamA.name + ' won' : winner === 'b' ? updated.teamB.name + ' won' : 'draw';
+    await audit.record(req, 'match.finish', { match: updated._id, tournament: updated.tournament }, { score: score.a + '-' + score.b, winner: winnerName });
     await respondAndBroadcast(res, updated);
   })
 );
@@ -204,6 +209,16 @@ router.post(
 
     eventData.scorer = req.user.id;
     await ScoreEvent.create(eventData);
+    if (type === END_SET) {
+      await audit.record(req, 'set.end', { match: match._id, tournament: match.tournament }, { summary: 'Set ' + score.currentSet.number + ' ' + score.currentSet.a + '-' + score.currentSet.b });
+    } else {
+      await audit.record(req, 'score.add', { match: match._id, tournament: match.tournament }, {
+        team: String(eventData.team) === String(match.teamA.id) ? match.teamA.name : match.teamB.name,
+        points: eventData.points,
+        label: config.actions[type].label,
+        player: eventData.playerName ? '#' + eventData.jersey + ' ' + eventData.playerName : null,
+      });
+    }
     await respondAndBroadcast(res, match, 201);
   })
 );
@@ -221,6 +236,12 @@ router.delete(
     const result = undoLast(events);
     if (!result.removed) throw httpError(400, 'Nothing to undo');
     await ScoreEvent.deleteOne({ _id: result.removed._id });
+    const ev = result.removed;
+    const teamName = String(ev.team) === String(match.teamA.id) ? match.teamA.name : String(ev.team) === String(match.teamB.id) ? match.teamB.name : null;
+    const action = SPORTS[match.sport].actions[ev.type];
+    await audit.record(req, 'score.undo', { match: match._id, tournament: match.tournament }, {
+      removed: { team: teamName, label: ev.type === END_SET ? 'End set' : action ? action.label : ev.type, points: ev.points },
+    });
     await respondAndBroadcast(res, match);
   })
 );
@@ -235,6 +256,7 @@ router.delete(
     if (match.status !== 'scheduled') throw httpError(409, 'Only scheduled matches can be deleted');
     const removed = await Match.findOneAndDelete({ _id: match._id, status: 'scheduled' });
     if (!removed) throw httpError(409, 'Match has just been started and cannot be deleted');
+    await audit.record(req, 'match.delete', { match: removed._id, tournament: removed.tournament }, { summary: removed.teamA.name + ' vs ' + removed.teamB.name });
     res.json({ ok: true });
   })
 );
@@ -302,6 +324,7 @@ router.delete(
     const match = await findMatchOr404(req.params.id);
     const removed = await Comment.findOneAndDelete({ _id: req.params.commentId, match: match._id });
     if (!removed) throw httpError(404, 'Comment not found');
+    await audit.record(req, 'comment.delete', { match: match._id, tournament: match.tournament }, { summary: removed.author + ': ' + removed.text.slice(0, 60) });
     const comments = await latestComments(match._id);
     sse.broadcast(match._id, comments, 'comments');
     res.json({ comments: comments });

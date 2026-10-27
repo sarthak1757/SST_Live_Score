@@ -6,6 +6,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { wrap, httpError } = require('../middleware/errors');
 
 const { createLimiter } = require('../services/rateLimit');
+const audit = require('../services/audit');
 
 const router = express.Router();
 const signupPerIp = createLimiter(5, 60 * 60 * 1000); // 5 sign-ups per hour per IP
@@ -94,6 +95,7 @@ router.post(
     if (await User.findOne({ email: email })) throw httpError(409, 'An account with this email already exists');
     const passwordHash = await bcrypt.hash(password, 10);
     await User.create({ email: email, passwordHash: passwordHash, role: role });
+    await audit.record(req, 'user.create', {}, { summary: email + ' (' + role + ')' });
     res.status(201).json({ user: { email: email, role: role } });
   })
 );

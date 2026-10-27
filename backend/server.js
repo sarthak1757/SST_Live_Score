@@ -22,6 +22,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/tournaments', require('./src/routes/tournaments'));
 app.use('/api/matches', require('./src/routes/matches'));
+app.use('/api/audit', require('./src/routes/audit'));
 app.use('/api', require('./src/routes/fans'));
 app.get('/api/sports', (req, res) => res.json({ sports: require('./src/config/sports').SPORTS }));
 

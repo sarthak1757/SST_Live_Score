@@ -216,3 +216,9 @@ button.mini { padding: 3px 10px; font-size: .62rem; margin-left: 6px; }
 ul.comments li:first-child { background: transparent; }
 
 .tabs.wrap { flex-wrap: wrap; overflow: visible; }
+
+/* ---------- Audit log ---------- */
+table.audit td { text-align: left; vertical-align: top; font-size: .92rem; }
+table.audit td:first-child { white-space: nowrap; width: 1%; }
+table.audit .act-undo, table.audit .act-delete { color: var(--pink); }
+table.audit .act-finish, table.audit .act-start { color: var(--lime); }

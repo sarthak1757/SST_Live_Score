@@ -9,6 +9,7 @@ const ScoreEvent = require('../models/ScoreEvent');
 const { computeStandings, topPlayers } = require('../services/scoring');
 const { validateRoster } = require('../services/roster');
 const { seedSemifinals, finalists } = require('../services/bracket');
+const audit = require('../services/audit');
 const { listWithScores } = require('../services/snapshot');
 
 const router = express.Router();
@@ -88,6 +89,7 @@ router.post(
     if (teams.length > 16) throw httpError(400, 'At most 16 teams are allowed');
 
     const tournament = await Tournament.create({ name: name, sport: sport, teams: teams, createdBy: req.user.id });
+    await audit.record(req, 'tournament.create', { tournament: tournament._id }, { summary: name + ' (' + SPORTS[sport].label + ', ' + teams.length + ' teams)' });
     res.status(201).json({ tournament: publicTournament(tournament) });
   })
 );
@@ -106,6 +108,7 @@ router.put(
     if (!team) throw httpError(404, 'Team not found in this tournament');
     team.players = players;
     await tournament.save();
+    await audit.record(req, 'roster.update', { tournament: tournament._id }, { summary: team.name + ': ' + players.length + ' players' });
     res.json({ tournament: publicTournament(tournament) });
   })
 );
@@ -155,6 +158,9 @@ router.post(
       const f = fixtures[i];
       await createFixture(tournament, f.stage, { id: f.a.teamId, name: f.a.name }, { id: f.b.teamId, name: f.b.name }, when);
     }
+    await audit.record(req, 'bracket.semifinals', { tournament: tournament._id }, {
+      summary: fixtures.map(function (f) { return f.a.name + ' v ' + f.b.name; }).join(', '),
+    });
     res.status(201).json({ ok: true });
   })
 );
@@ -173,6 +179,7 @@ router.post(
     const sf2 = matches.find(function (m) { return m.stage === 'sf2'; });
     const teams = finalists(sf1, sf2);
     await createFixture(tournament, 'final', teams.a, teams.b, when);
+    await audit.record(req, 'bracket.final', { tournament: tournament._id }, { summary: teams.a.name + ' v ' + teams.b.name });
     res.status(201).json({ ok: true });
   })
 );

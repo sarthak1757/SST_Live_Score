@@ -37,6 +37,8 @@ function render() {
   document.getElementById('meta').textContent = sportIcon(m.sport) + ' ' + m.tournamentName + ' · ' + m.sportLabel;
   document.getElementById('state').innerHTML = statusBadge(m.status);
   document.getElementById('public-link').href = '/match.html?id=' + m.id;
+  const auditLink = document.getElementById('audit-link');
+  if (user.role === 'admin') { auditLink.hidden = false; auditLink.href = '/audit.html?match=' + m.id; }
 
   // Start / Undo / End set / Finish
   let controls = '';

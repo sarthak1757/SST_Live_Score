@@ -81,7 +81,7 @@ function renderNav() {
   const user = getUser();
   let right = '<a href="/signup.html">Sign up</a><a href="/login.html">Log in</a>';
   if (user && getToken()) {
-    right = '<a href="/feed.html">My feed</a>' + (user.role === 'fan' ? '' : '<a href="/dashboard.html">Dashboard</a>') +
+    right = '<a href="/feed.html">My feed</a>' + (user.role === 'fan' ? '' : '<a href="/dashboard.html">Dashboard</a>') + (user.role === 'admin' ? '<a href="/audit.html">Audit</a>' : '') +
       '<span class="muted">' + esc(user.email) + '</span><a href="#" id="logout-link">Log out</a>';
   }
   const nav = document.createElement('header');
