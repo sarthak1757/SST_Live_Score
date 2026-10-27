@@ -29,12 +29,12 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 8. **Fan engagement** - viewers react to a live match (🔥 👏 😮) without logging in; counts update live for everyone over SSE and are rate-limited per browser and per IP. Signed-in users chat under the match (max 200 characters, 3 per 30 s); admins can delete comments. Only the part of the email before "@" is shown publicly.
 9. **Follow houses** - anyone can sign up as a **fan** (self sign-up always creates the `fan` role, 5 sign-ups per hour per IP). Fans follow houses and get a **My feed** page with their houses' live and upcoming matches and results, across every sport. A house is matched by team name, case-insensitively, so following "Red" covers Red in football and in kabaddi. Fans can comment but cannot score or administer.
 10. **Audit log** - every scoring action, set end, undo, start/finish and admin change (tournament, roster, match create/delete, bracket, comment deletion, account creation) is recorded with who, what and when. Admins open the **Audit** page and view it per match or per tournament, e.g. "s@sst.edu - Undid last action: Blue Raid point (+1)".
-11. **Sports-app layout** - left sidebar (Home, Live, Tournaments, Teams, Players, My Feed, Admin), a global search bar for teams, players and tournaments, and stat cards. The design takes inspiration from sports-score apps and learning dashboards, in its own pink/lime/black style; no third-party logos or designs are copied.
+11. **Sports-app layout** - left sidebar (Home, Live, Tournaments, Teams, Players, My Feed, Admin), a global search bar for teams, players and tournaments, and stat cards. The design takes inspiration from sports-score apps and learning dashboards, in its own cobalt/lime/midnight style; no third-party logos or designs are copied.
 12. **Tournament pages with tabs** - Overview, Fixtures (grouped by knockout round or day), Results, Standings (P W D L GF GA GD Pts, last-5 form dots; ties split by goal difference, then goals for), Bracket and Top players.
 13. **Match pages with tabs** - Summary (timeline with minute and player, Team A left / Team B right), Lineups (rosters with each player's contribution), Stats (per sport: football goals and cards, kabaddi raid/tackle/bonus/all-out points, basketball shots, cricket runs/wickets/overs/run rate/boundaries/extras) and Head-to-head (past results between the two houses across all sports).
 14. **Team and player pages** - a house's record, win rate, recent form, squads per tournament, fixtures and results; a player's stats per tournament with an action breakdown and recent actions.
 15. **Football cards and match clock** - yellow and red cards (a sent-off player cannot be given further actions; cards never count as scoring). Football, basketball and kabaddi get a clock with start, pause, resume and half-time / end of quarter; every event records its match minute.
-16. **Roster import (admin)** - upload an `.xlsx` (or `.csv`, max 2 MB) where each tab is one team (tab name = team name, e.g. "Kong A") with the columns Name, SST mail, Roll No., Batch and an optional Jersey. The admin picks a tournament, sees a **preview** (per team: players to add, update or skip, with reasons and warnings) and then confirms. Teams are created if missing (house = the text before " A" / " B"); players are upserted by SST mail; ALL-CAPS names become Title Case; empty rows are skipped; duplicate mails and duplicate jersey numbers are flagged. Players without a jersey number can be given one later on the team page (unique per team).
+16. **Roster import (admin)** - upload an `.xlsx` (or `.csv`, max 2 MB) where each tab is one team (tab name = team name, e.g. "Kong A") with the columns Name, SST mail, Roll No., Batch and an optional Jersey. The admin picks a tournament, sees a **preview** (per team: players to add, update or skip, with reasons and warnings) and then confirms. Teams are created if missing (house = the text before " A" / " B"); players are upserted by SST mail; ALL-CAPS names become Title Case; empty rows are skipped; duplicate mails and duplicate jersey numbers are flagged. Players without a jersey number can be given one later on the team page (unique per team). Admins can also delete a team from the Dashboard, but only if it has no matches.
 17. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
@@ -100,6 +100,7 @@ package.json            root scripts only (start, seed, test) so Render settings
 | POST | `/api/tournaments`, `/api/matches`, `/api/auth/users` | admin |
 | DELETE | `/api/matches/:id` (scheduled only) | admin |
 | PUT | `/api/tournaments/:id/teams/:teamId/players` (replace roster) | admin |
+| DELETE | `/api/tournaments/:id/teams/:teamId` (only if the team has no matches) | admin |
 | POST | `/api/tournaments/:id/bracket`, `/api/tournaments/:id/bracket/final` | admin |
 | POST | `/api/matches/:id/reactions` `{ type, clientId }` | public, rate-limited |
 | POST | `/api/auth/signup` (creates a fan) | public, rate-limited |
@@ -147,7 +148,7 @@ Requires Node.js 18+ and a MongoDB Atlas cluster (free tier is fine).
 git clone <your-repo-url>
 cd Scoring_Platform_sst
 npm install              # also installs backend/ dependencies (postinstall)
-cp .env.example .env     # one .env, at the repo root      # then edit .env (see below)
+cp .env.example .env     # one .env at the repo root, then edit it (see below)
 npm run seed              # creates the admin from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 npm start                 # http://localhost:3000
 npm test                  # runs the Jest tests in backend/tests
@@ -181,6 +182,5 @@ Note: Render's free tier sleeps after inactivity, so the first request can take 
 
 - **Deeper cricket:** toss and choice of who bats first, batting and bowling figures per player, run rate, byes and leg-byes, run-outs off a scoring ball, and a super over for tied knockout matches. At the moment a tied knockout cricket match cannot be finished.
 - **Push notifications** for match start and final results.
-- **Player stats** (top scorers, per-player history).
 - **Split hosting (Vercel + Render):** deploy `frontend/` to Vercel as a static site and keep `backend/` on Render. Set `API_BASE` in `frontend/js/api.js` to the Render URL and add CORS (allow the Vercel origin, `Authorization` header) to the Express app. SSE then works cross-origin as well.
-- Admin UI to manage scorer accounts, edit/cancel matches, and knockout brackets.
+- Admin UI to manage scorer accounts, edit or cancel matches, and delete whole tournaments.
