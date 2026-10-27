@@ -58,3 +58,23 @@ describe('cricket', () => {
     expect(s.cricket.innings[0]).toMatchObject({ runs: 11, overs: '1.5' });
   });
 });
+
+describe('cricket card summary', () => {
+  const { inningsSummary } = require('../src/services/scoring');
+
+  test('gives runs, wickets and overs for each side (e.g. 42/2 and 30/5)', () => {
+    let t = 0;
+    const mk = (type, team) => ({ team, type, points: POINTS[type], createdAt: new Date(++t) });
+    const events = [].concat(
+      [mk('six', 'A'), mk('wicket', 'A'), mk('four', 'A'), mk('wicket', 'A'), mk('run2', 'A'), mk('run1', 'A')],
+      [{ team: null, type: 'end_innings', points: 0, createdAt: new Date(++t) }],
+      [mk('four', 'B'), mk('wicket', 'B'), mk('wide', 'B')]
+    );
+    const summary = inningsSummary(computeScore(events, 'cricket', 'A', 'B', { overs: 5 }));
+    expect(summary).toEqual([{ runs: 13, wickets: 2, overs: '1.0' }, { runs: 5, wickets: 1, overs: '0.2' }]);
+  });
+
+  test('is null for sports other than cricket', () => {
+    expect(inningsSummary(computeScore([], 'football', 'A', 'B'))).toBeNull();
+  });
+});

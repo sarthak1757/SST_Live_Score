@@ -169,6 +169,15 @@ function computeCricket(events, config, overs) {
   };
 }
 
+// Compact cricket numbers for list cards: [{ runs, wickets, overs }, { ... }] (Team A, Team B).
+// Returns null for other sports.
+function inningsSummary(score) {
+  if (!score || !score.cricket) return null;
+  return score.cricket.innings.map(function (inn) {
+    return { runs: inn.runs, wickets: inn.wickets, overs: inn.overs };
+  });
+}
+
 // 'a', 'b' or 'draw' based on the main score.
 function getWinner(score) {
   if (score.a > score.b) return 'a';
@@ -289,6 +298,7 @@ function isSentOff(events, playerId) {
 }
 
 module.exports = {
+  inningsSummary,
   isSentOff,
   topPlayers,
   oversText,

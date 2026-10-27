@@ -1,7 +1,7 @@
 // Builds the JSON the UI needs for a match. The score is ALWAYS computed from events.
 const ScoreEvent = require('../models/ScoreEvent');
 const { SPORTS, END_SET, END_INNINGS } = require('../config/sports');
-const { computeScore, sortEvents, topPlayers } = require('./scoring');
+const { computeScore, sortEvents, topPlayers, inningsSummary } = require('./scoring');
 const { publicClock } = require('./clock');
 const { matchStats } = require('./matchStats');
 
@@ -68,7 +68,9 @@ async function buildSnapshot(match) {
 async function listWithScores(matches) {
   const liveIds = [];
   for (let i = 0; i < matches.length; i++) {
-    if (matches[i].status === 'live') liveIds.push(matches[i]._id);
+    // live matches need their score computed; finished cricket matches also need wickets, which are not stored on the match
+    const m = matches[i];
+    if (m.status === 'live' || (m.status === 'finished' && SPORTS[m.sport].cricket)) liveIds.push(m._id);
   }
   const eventsByMatch = {};
   if (liveIds.length > 0) {
@@ -84,9 +86,10 @@ async function listWithScores(matches) {
   for (let i = 0; i < matches.length; i++) {
     const m = matches[i];
     const out = publicMatch(m);
-    if (m.status === 'live') {
+    if (m.status === 'live' || (m.status === 'finished' && SPORTS[m.sport].cricket)) {
       const s = computeScore(eventsByMatch[String(m._id)] || [], m.sport, m.teamA.id, m.teamB.id, { overs: m.overs });
       out.score = { a: s.a, b: s.b };
+      out.cricket = inningsSummary(s); // [{ runs, wickets, overs }, ...] or null
     } else if (m.status === 'finished' && m.finalScore) {
       out.score = { a: m.finalScore.a, b: m.finalScore.b };
     } else {
