@@ -3,60 +3,77 @@ const statusBox = document.getElementById('status');
 const content = document.getElementById('content');
 const connBadge = document.getElementById('conn');
 
-let lastScore = null;
+let last = null; // previous score, used to flash only the side that changed
 
 function setConn(kind, text) {
   connBadge.className = 'badge ' + kind;
   connBadge.textContent = text;
 }
 
+function teamBlock(team, score, side, won) {
+  return '<div class="sb-team ' + (won ? 'won' : '') + '" style="--team:' + teamColor(team.name) + '">' +
+    '<div class="sb-bar"></div><div class="sb-name">' + esc(team.name) + (won ? ' \uD83C\uDFC6' : '') + '</div>' +
+    '<div class="sb-num" id="num-' + side + '">' + score + '</div></div>';
+}
+
 function render(snap) {
   const m = snap.match;
   const s = snap.score;
   document.title = (m.status === 'scheduled' ? '' : s.a + '-' + s.b + ' ') + m.teamA.name + ' vs ' + m.teamB.name + ' - SST Live';
-  document.getElementById('meta').innerHTML =
-    '<a href="/tournament.html?id=' + m.tournament + '">' + esc(m.tournamentName) + '</a> · ' + esc(m.sportLabel) + ' · ' + fmtDate(m.scheduledAt);
+  document.getElementById('meta').innerHTML = sportIcon(m.sport) + ' ' + esc(m.sportLabel) + ' · <a href="/tournament.html?id=' + m.tournament + '">' +
+    esc(m.tournamentName) + '</a> · ' + fmtDate(m.scheduledAt);
   document.getElementById('state').innerHTML = statusBadge(m.status);
 
   const isSetSport = s.currentSet !== null;
   const aWon = m.status === 'finished' && m.winner === 'a';
   const bWon = m.status === 'finished' && m.winner === 'b';
-  let board = '<div class="names"><div class="team-name ' + (aWon ? 'winner' : '') + '">' + esc(m.teamA.name) + '</div><div></div>' +
-    '<div class="team-name ' + (bWon ? 'winner' : '') + '">' + esc(m.teamB.name) + '</div>' +
-    '<div class="num">' + s.a + '</div><div class="muted">' + (isSetSport ? 'sets' : '') + '</div><div class="num">' + s.b + '</div></div>';
-  if (m.status === 'finished') {
-    board += '<p><strong>' + (m.winner === 'draw' ? 'Match drawn' : esc(m.winner === 'a' ? m.teamA.name : m.teamB.name) + ' won') + '</strong></p>';
-  } else if (m.status === 'scheduled') {
-    board += '<p class="muted">Not started yet</p>';
+  let footer = '';
+  if (m.status === 'finished') footer = m.winner === 'draw' ? 'Full time - match drawn' : 'Full time - ' + esc(m.winner === 'a' ? m.teamA.name : m.teamB.name) + ' win';
+  else if (m.status === 'scheduled') footer = 'Kick-off ' + fmtDate(m.scheduledAt);
+  else if (isSetSport) footer = 'Sets won · Set ' + s.currentSet.number + ' in play: ' + s.currentSet.a + ' - ' + s.currentSet.b;
+
+  document.getElementById('scoreboard').innerHTML =
+    '<div class="sb-grid">' + teamBlock(m.teamA, s.a, 'a', aWon) + '<div class="sb-dash">-</div>' + teamBlock(m.teamB, s.b, 'b', bWon) + '</div>' +
+    (footer ? '<div class="sb-footer">' + footer + '</div>' : '');
+
+  // flash the number that changed
+  if (last) {
+    if (last.a !== s.a) document.getElementById('num-a').classList.add('flash');
+    if (last.b !== s.b) document.getElementById('num-b').classList.add('flash');
   }
-  document.getElementById('scoreboard').innerHTML = board;
-  const key = s.a + '-' + s.b;
-  if (lastScore !== null && lastScore !== key) {
-    document.querySelectorAll('#scoreboard .num').forEach(function (n) { n.classList.add('pop'); });
-  }
-  lastScore = key;
+  last = { a: s.a, b: s.b };
 
   // Set-by-set scores (volleyball / badminton)
   const setsBox = document.getElementById('sets');
   if (isSetSport && (s.sets.length > 0 || m.status === 'live')) {
     let rows = '';
     s.sets.forEach(function (set) {
-      rows += '<tr><td>Set ' + set.number + '</td><td>' + set.a + '</td><td>' + set.b + '</td></tr>';
+      rows += '<tr><td>Set ' + set.number + '</td><td class="' + (set.winner === 'a' ? 'win-cell' : '') + '">' + set.a +
+        '</td><td class="' + (set.winner === 'b' ? 'win-cell' : '') + '">' + set.b + '</td></tr>';
     });
     if (m.status === 'live' && !s.matchDecided) {
-      rows += '<tr><td>Set ' + s.currentSet.number + ' (in play)</td><td>' + s.currentSet.a + '</td><td>' + s.currentSet.b + '</td></tr>';
+      rows += '<tr class="inplay"><td>Set ' + s.currentSet.number + ' <span class="badge live"><span class="dot"></span>in play</span></td><td>' +
+        s.currentSet.a + '</td><td>' + s.currentSet.b + '</td></tr>';
     }
-    setsBox.innerHTML = '<table><thead><tr><th>Set</th><th>' + esc(m.teamA.name) + '</th><th>' + esc(m.teamB.name) + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    setsBox.innerHTML = '<h2>Set scores</h2><table><thead><tr><th>Set</th><th>' + teamChip(m.teamA.name) + esc(m.teamA.name) +
+      '</th><th>' + teamChip(m.teamB.name) + esc(m.teamB.name) + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
   } else {
     setsBox.innerHTML = '';
   }
 
+  // Event feed: "Red House +2 Raid point  12:03:44"
   const feed = document.getElementById('feed');
   if (snap.events.length === 0) {
-    feed.innerHTML = '<li class="muted">No scoring events yet.</li>';
+    feed.innerHTML = '<li class="muted">No scoring events yet. Updates will appear here instantly.</li>';
   } else {
     feed.innerHTML = snap.events.map(function (ev) {
-      const text = ev.teamName ? esc(ev.teamName) + ' - ' + esc(ev.label) + (ev.points ? ' (+' + ev.points + ')' : '') : esc(ev.label);
+      let text;
+      if (ev.teamName) {
+        text = teamChip(ev.teamName) + '<strong>' + esc(ev.teamName) + '</strong> ' +
+          (ev.points ? '<span class="pts">+' + ev.points + '</span> ' : '') + esc(ev.label);
+      } else {
+        text = '\u23F1 ' + esc(ev.label);
+      }
       return '<li><span>' + text + '</span><span class="muted">' + fmtTime(ev.time) + '</span></li>';
     }).join('');
   }
