@@ -86,13 +86,17 @@ function render() {
       return '<button' + (card ? ' class="card-' + card + '"' : '') + ' data-team="' + team.id + '" data-type="' + key + '"' + (canTap ? '' : ' disabled') + '>' + cardIcon(key) + esc(config.actions[key].label) + '</button>';
     }).join('');
     let numText = s[side];
+    if (config.sets && s.currentSet && !s.matchDecided) {
+      // set sports: the big number is the current set's points, sets won sit underneath
+      numText = s.currentSet[side] + '<div class="muted">Sets: ' + s[side] + '</div>';
+    }
     if (config.cricket) {
       const inn = s.cricket.innings[side === 'a' ? 0 : 1];
       numText = cricketTotal(inn) + '<div class="muted">' + inn.overs + ' ov</div>';
       if (!batting) actionButtons = '<div class="empty small">' + (s.cricket.battingSide ? 'Bowling' : 'Innings complete') + '</div>';
       else actionButtons = '<div class="cricket-pad">' + actionButtons + '</div>';
     }
-    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--blue);--on-team:var(--on-blue)' : 'var(--lime);--on-team:var(--on-lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + s[side] + '</div>' + picker + actionButtons + '</div>';
+    pad += '<div class="team" style="--team:' + (side === 'a' ? 'var(--blue);--on-team:var(--on-blue)' : 'var(--lime);--on-team:var(--on-lime)') + '"><div class="bar"></div><h3>' + esc(team.name) + '</h3><div class="num">' + numText + '</div>' + picker + actionButtons + '</div>';
   });
   document.getElementById('pad').innerHTML = pad;
 
