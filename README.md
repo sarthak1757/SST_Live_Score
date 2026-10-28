@@ -34,7 +34,7 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 13. **Match pages with tabs** - Summary (timeline with minute and player, Team A left / Team B right), Lineups (rosters with each player's contribution), Stats (per sport: football goals and cards, kabaddi raid/tackle/bonus/all-out points, basketball shots, cricket runs/wickets/overs/run rate/boundaries/extras) and Head-to-head (past results between the two houses across all sports).
 14. **Team and player pages** - a house's record, win rate, recent form, squads per tournament, fixtures and results; a player's stats per tournament with an action breakdown and recent actions.
 15. **Football cards and match clock** - yellow and red cards (a sent-off player cannot be given further actions; cards never count as scoring). Football, basketball and kabaddi get a clock with start, pause, resume and half-time / end of quarter; every event records its match minute.
-16. **Roster import (admin)** - upload an `.xlsx` (or `.csv`, max 2 MB) where each tab is one team (tab name = team name, e.g. "Kong A") with the columns Name, SST mail, Roll No., Batch and an optional Jersey. The admin picks a tournament, sees a **preview** (per team: players to add, update or skip, with reasons and warnings) and then confirms. Teams are created if missing (house = the text before " A" / " B"); players are upserted by SST mail; ALL-CAPS names become Title Case; empty rows are skipped; duplicate mails and duplicate jersey numbers are flagged. Players without a jersey number can be given one later on the team page (unique per team). Admins can also delete a team from the Dashboard, but only if it has no matches.
+16. **Roster import (admin)** - upload an `.xlsx` (or `.csv`, max 2 MB) where each tab is one team (tab name = team name, e.g. "Kong A") with the columns Name, SST mail, Roll No., Batch and an optional Jersey. The admin picks a tournament, sees a **preview** (per team: players to add, update or skip, with reasons and warnings) and then confirms. Teams are created if missing (house = the text before " A" / " B"); players are upserted by SST mail; ALL-CAPS names become Title Case; empty rows are skipped; duplicate mails and duplicate jersey numbers are flagged. Players without a jersey number can be given one later on the team page (unique per team). Admins can also delete a team, or a whole tournament, from the Dashboard, but only if it has no matches.
 17. **One sports config** - football, basketball, volleyball, badminton, kabaddi and cricket are all defined in [backend/src/config/sports.js](backend/src/config/sports.js). Adding a sport means adding one entry.
 
 | Sport | Scoring buttons | Format |
@@ -101,6 +101,7 @@ package.json            root scripts only (start, seed, test) so Render settings
 | DELETE | `/api/matches/:id` (scheduled only) | admin |
 | PUT | `/api/tournaments/:id/teams/:teamId/players` (replace roster) | admin |
 | DELETE | `/api/tournaments/:id/teams/:teamId` (only if the team has no matches) | admin |
+| DELETE | `/api/tournaments/:id` (only if the tournament has no matches) | admin |
 | POST | `/api/tournaments/:id/bracket`, `/api/tournaments/:id/bracket/final` | admin |
 | POST | `/api/matches/:id/reactions` `{ type, clientId }` | public, rate-limited |
 | POST | `/api/auth/signup` (creates a fan) | public, rate-limited |
@@ -183,4 +184,4 @@ Note: Render's free tier sleeps after inactivity, so the first request can take 
 - **Deeper cricket:** toss and choice of who bats first, batting and bowling figures per player, run rate, byes and leg-byes, run-outs off a scoring ball, and a super over for tied knockout matches. At the moment a tied knockout cricket match cannot be finished.
 - **Push notifications** for match start and final results.
 - **Split hosting (Vercel + Render):** deploy `frontend/` to Vercel as a static site and keep `backend/` on Render. Set `API_BASE` in `frontend/js/api.js` to the Render URL and add CORS (allow the Vercel origin, `Authorization` header) to the Express app. SSE then works cross-origin as well.
-- Admin UI to manage scorer accounts, edit or cancel matches, and delete whole tournaments.
+- Admin UI to manage scorer accounts, edit or cancel matches.

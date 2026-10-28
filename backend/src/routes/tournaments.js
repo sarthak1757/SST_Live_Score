@@ -125,6 +125,23 @@ router.put(
   })
 );
 
+// DELETE /api/tournaments/:id (admin) - only a tournament with no matches can be removed
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) throw httpError(400, 'Invalid id');
+    const tournament = await Tournament.findById(req.params.id);
+    if (!tournament) throw httpError(404, 'Tournament not found');
+    const used = await Match.countDocuments({ tournament: tournament._id });
+    if (used > 0) throw httpError(409, tournament.name + ' has ' + used + ' match(es). Delete those matches first.');
+    await Tournament.deleteOne({ _id: tournament._id });
+    await audit.record(req, 'tournament.delete', { tournament: tournament._id }, { summary: 'Removed tournament ' + tournament.name });
+    res.json({ ok: true });
+  })
+);
+
 // DELETE /api/tournaments/:id/teams/:teamId (admin) - only a team with no matches can be removed
 router.delete(
   '/:id/teams/:teamId',
