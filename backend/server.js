@@ -28,6 +28,8 @@ app.use('/api', require('./src/routes/browse'));
 app.get('/api/sports', (req, res) => res.json({ sports: require('./src/config/sports').SPORTS }));
 
 app.use('/api', notFound);
+// Any other unknown URL gets the friendly 404 page (status 404, so crawlers know it is missing).
+app.use((req, res) => res.status(404).sendFile(path.join(__dirname, '../frontend/404.html')));
 app.use(errorHandler);
 
 async function start() {
