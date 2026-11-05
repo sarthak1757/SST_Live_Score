@@ -19,15 +19,15 @@ Scorers log in, open a match and tap sport-specific buttons per team. Every tap 
 
 ## Key Features
 
-1. **Login** - hashed passwords (bcrypt), JWT sessions, `admin`, `scorer` and `fan` roles, seed script for the first admin.
+1. **Login** - **Sign in with Google**, limited to Scaler / SST accounts (see below), plus email/password for staff accounts (bcrypt). JWT sessions, `admin`, `scorer` and `fan` roles, seed script for the first admin. Viewing is public; reacting, chatting, following houses, scoring and admin pages need a login.
 2. **Tournaments and scheduling** (admin) - create a tournament with a sport and houses/teams, then schedule matches between them.
 3. **Live scoring** - Start, tap scoring buttons, Undo last action, End set (volleyball/badminton), Finish. Status flow is validated: `scheduled -> live -> finished`; you cannot score a finished match or finish a scheduled one.
 4. **Public live view** - home page with live/upcoming/finished matches and status/sport filters; match page with real-time score + event feed (auto-reconnecting SSE); tournament page with standings (win 3, draw 1, loss 0).
 5. **Extras** - login rate limiting (8 failed attempts / 10 min), security headers, admin can create scorer accounts and delete scheduled matches, dark mode, animated score changes, live score in the browser tab title.
 6. **Players & stats** - admins add a roster (jersey no. + name) per team; scorers can optionally pick the player for each action (e.g. kabaddi raid point by #7). The match page shows top scorers and the feed names the player; the tournament page has a top-players leaderboard across all matches.
 7. **Knockout brackets** - once all group matches are finished, the admin generates semifinals from the top 4 of the standings (SF1: 1st v 4th, SF2: 2nd v 3rd), then the final from the two winners. The tournament page shows a bracket view and the champion. Knockout matches cannot end in a draw.
-8. **Fan engagement** - viewers react to a live match (🔥 👏 😮) without logging in; counts update live for everyone over SSE and are rate-limited per browser and per IP. Signed-in users chat under the match (max 200 characters, 3 per 30 s); admins can delete comments. Only the part of the email before "@" is shown publicly.
-9. **Follow houses** - anyone can sign up as a **fan** (self sign-up always creates the `fan` role, 5 sign-ups per hour per IP). Fans follow houses and get a **My feed** page with their houses' live and upcoming matches and results, across every sport. A house is matched by team name, case-insensitively, so following "Red" covers Red in football and in kabaddi. Fans can comment but cannot score or administer.
+8. **Fan engagement** - signed-in users react to a live match (🔥 👏 😮); counts update live for everyone (including logged-out viewers) over SSE and are rate-limited per browser and per IP. Signed-in users chat under the match (max 200 characters, 3 per 30 s); admins can delete comments. Only the part of the email before "@" is shown publicly.
+9. **Follow houses** - anyone who signs in with Google is a **fan** (the default role). Fans follow houses and get a **My feed** page with their houses' live and upcoming matches and results, across every sport. A house is matched by team name, case-insensitively, so following "Red" covers Red in football and in kabaddi. Fans can comment but cannot score or administer.
 10. **Audit log** - every scoring action, set end, undo, start/finish and admin change (tournament, roster, match create/delete, bracket, comment deletion, account creation) is recorded with who, what and when. Admins open the **Audit** page and view it per match or per tournament, e.g. "s@sst.edu - Undid last action: Blue Raid point (+1)".
 11. **Sports-app layout** - left sidebar (Home, Live, Tournaments, Teams, Players, My Feed, Admin), a global search bar for teams, players and tournaments, and stat cards. The design takes inspiration from sports-score apps and learning dashboards, in its own cobalt/lime/midnight style; no third-party logos or designs are copied.
 12. **Tournament pages with tabs** - Overview, Fixtures (grouped by knockout round or day), Results, Standings (P W D L GF GA GD Pts, last-5 form dots; ties split by goal difference, then goals for), Bracket and Top players.
@@ -103,8 +103,11 @@ package.json            root scripts only (start, seed, test) so Render settings
 | DELETE | `/api/tournaments/:id/teams/:teamId` (only if the team has no matches) | admin |
 | DELETE | `/api/tournaments/:id` (only if the tournament has no matches) | admin |
 | POST | `/api/tournaments/:id/bracket`, `/api/tournaments/:id/bracket/final` | admin |
-| POST | `/api/matches/:id/reactions` `{ type, clientId }` | public, rate-limited |
-| POST | `/api/auth/signup` (creates a fan) | public, rate-limited |
+| POST | `/api/matches/:id/reactions` `{ type, clientId }` | any signed-in user, rate-limited |
+| POST | `/api/auth/google` `{ credential }` (Google ID token; Scaler / SST accounts only) | public, rate-limited |
+| GET | `/api/config` (only the public Google client id) | public |
+| GET | `/api/auth/users` | admin |
+| PUT | `/api/auth/users/:id/role` `{ role: fan, scorer or admin }` | admin |
 | GET | `/api/houses` | public |
 | GET / PUT | `/api/me/follows`, GET `/api/me/feed` | any signed-in user |
 | GET / POST | `/api/matches/:id/comments` | GET public, POST any signed-in user |
@@ -125,7 +128,9 @@ package.json            root scripts only (start, seed, test) so Render settings
 
 **Fan engagement:** reaction counts live on the match and use an atomic `$inc`, so no clicks are lost. The SSE stream carries three event types: `snapshot` (score and feed), `reactions` (counts) and `comments` (latest 50). A small sliding-window limiter (`src/services/rateLimit.js`) allows 1 reaction per 1.5 s per browser id and 60 per minute per IP, so faking browser ids does not help. Limits are in memory, which is fine for a single Render instance.
 
-**Roles:** `admin` (everything), `scorer` (start, score, undo, finish), `fan` (follow houses, comment). Every protected route uses `requireAuth` + `requireRole(...)`; sign-up ignores any `role` in the request body.
+**Roles:** `admin` (everything), `scorer` (start, score, undo, finish), `fan` (react, follow houses, comment). Every protected route uses `requireAuth` + `requireRole(...)`. Admins list users (the only place emails are shown) and change roles on the Admin page; they cannot change their own role.
+
+**Google sign-in:** the browser gets an ID token from Google Identity Services and POSTs it to `/api/auth/google`. The server verifies it with `google-auth-library` (audience = `GOOGLE_CLIENT_ID`) and then allows the account only if `email_verified` is true, the part after `@` **exactly** equals one of `ALLOWED_EMAIL_DOMAINS` (so `evilscaler.com` fails) and the `hd` (Google Workspace domain) claim is one of those domains too; otherwise it answers 403 "Only Scaler / SST accounts can sign in". A new user becomes `admin` if their email is in `ADMIN_EMAILS`, otherwise `fan`; existing users keep their role. The rules live in `src/services/googleAuth.js` and are unit tested with fake tokens. Password sign-up for fans was removed because it cannot prove someone owns an `@scaler.com` address. See the [privacy page](frontend/privacy.html).
 
 **Audit log:** routes call `audit.record(req, action, { match, tournament }, details)` only after an action succeeds, so rejected requests (e.g. scoring a finished match) are never logged. Entries store the actor id and role; the email is joined in when admins read the log. `buildEntry()` only accepts known action names, and `describe()` turns an entry into a readable line. If writing the log fails, the error is reported in the server log but the scorer's action still goes through.
 
@@ -164,6 +169,9 @@ Admins can also create scorer accounts from the Dashboard. CLI alternative: `nod
 | `MONGODB_URI` | MongoDB Atlas connection string (allow your IP, or 0.0.0.0/0 for Render, in Atlas Network Access) |
 | `JWT_SECRET` | Long random string used to sign tokens |
 | `PORT` | Optional, Render sets it automatically |
+| `GOOGLE_CLIENT_ID` | OAuth client ID (type "Web application") from Google Cloud Console. Add your site and `http://localhost:3000` under *Authorized JavaScript origins* |
+| `ALLOWED_EMAIL_DOMAINS` | Comma-separated domains allowed to sign in, e.g. `sst.scaler.com,scaler.com` |
+| `ADMIN_EMAILS` | Comma-separated emails that become admin on their first Google sign-in |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | Only used by `npm run seed` (password min 8 chars) |
 
 Secrets live in `.env`, which is git-ignored. Only `.env.example` is committed.
@@ -174,7 +182,7 @@ Deployed on Render (free web service): **https://sst-live-score.onrender.com**
 
 1. Push the repo to GitHub.
 2. Render -> New -> Web Service -> pick the repo. Build command `npm install`, start command `npm start` (both run from the repo root).
-3. Add `MONGODB_URI` and `JWT_SECRET` as environment variables.
+3. Add `MONGODB_URI`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `ALLOWED_EMAIL_DOMAINS` and `ADMIN_EMAILS` as environment variables.
 4. Once deployed, run the seed once against the same database (locally with the same `MONGODB_URI`, or from the Render Shell: `npm run seed` with the `SEED_ADMIN_*` variables set).
 
 Note: Render's free tier sleeps after inactivity, so the first request can take ~30 s.
