@@ -155,6 +155,8 @@ npm start                 # http://localhost:3000
 npm test                  # runs the Jest tests in backend/tests
 ```
 
+The Jest tests cover the scoring, standings, bracket, clock, roster import and privacy logic, plus the 404 behaviour. Run one file with `npm test --prefix backend -- scoring`.
+
 Admins can also create scorer accounts from the Dashboard. CLI alternative: `node backend/seed.js scorer@sst.edu SomePass123 scorer`
 
 ## Environment Variables
