@@ -10,6 +10,12 @@
 <body>
 <main style="max-width:420px">
   <h1>Welcome <em>Back</em></h1>
+  <div class="card">
+    <p class="muted" style="margin:0 0 10px">Use your Scaler / SST Google account.</p>
+    <div id="google-btn" style="min-height:44px"></div>
+    <div id="google-msg"></div>
+  </div>
+  <h2>Staff <em>password</em> login</h2>
   <form class="card" id="login-form">
     <label for="email">Email</label>
     <input id="email" type="email" autocomplete="username" required>
@@ -18,7 +24,7 @@
     <div id="msg"></div>
     <button type="submit" id="submit" style="width:100%;margin-top:8px">Log in</button>
   </form>
-  <p class="muted">New fan? <a href="/signup.html">Create an account</a> to follow houses and chat. Watching matches needs no account - <a href="/">go to scores</a>.</p>
+  <p class="muted">Watching matches needs no account - <a href="/">go to scores</a>. Signing in lets you react, chat and follow houses. <a href="/privacy.html">Privacy</a></p>
 </main>
 <script src="/js/api.js"></script>
 <script src="/js/common.js"></script>

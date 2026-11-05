@@ -29,6 +29,7 @@ function renderReactions(bump) {
 document.getElementById('reactions').addEventListener('click', async function (e) {
   const btn = e.target.closest('button[data-r]');
   if (!btn || btn.disabled) return;
+  if (!getToken()) { toast('error', 'Sign in to react.'); return; }
   try {
     const data = await api('POST', '/api/matches/' + matchId + '/reactions', { type: btn.dataset.r, clientId: clientId() });
     reactionCounts = data.reactions;

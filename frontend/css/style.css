@@ -265,6 +265,8 @@ body.app main > * { max-width: 1100px; }
 .topbar .account { display: flex; align-items: center; gap: 16px; margin-left: auto; white-space: nowrap; }
 .topbar .account a { color: var(--text); font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; font-weight: 600; }
 .topbar .who { font-size: .85rem; color: var(--muted); }
+.topbar .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+.sidebar .privacy-link { margin-top: auto; padding: 0 12px; color: var(--muted); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; }
 .btn.small { padding: 7px 16px; border-width: 2px; }
 .topbar .account a.btn { color: var(--on-lime); } /* beat the generic top-bar link colour: black on lime */
 .menu-btn { display: none; padding: 8px 14px; font-size: 1rem; letter-spacing: 0; }
@@ -297,7 +299,7 @@ body.app main > * { max-width: 1100px; }
   .menu-btn { display: inline-block; }
   .topbar .who { display: none; }
 }
-@media (max-width: 560px) { .topbar .account a[href="/signup.html"] { display: none; } .controls { top: 62px; } }
+@media (max-width: 560px) { .controls { top: 62px; } }
 
 /* ---------- Page header + tabs (tournament / match / team / player) ---------- */
 .page-head { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }

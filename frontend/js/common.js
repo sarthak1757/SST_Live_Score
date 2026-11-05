@@ -199,13 +199,14 @@ function renderNav() {
   side.className = 'sidebar';
   side.innerHTML = '<a class="brand" href="/">SST <span>LIVE</span></a><nav>' + links.map(function (l) {
     return '<a href="' + l.href + '" class="' + (active(l) ? 'active ' : '') + (l.sub ? 'sub ' : '') + (l.live ? 'live-link' : '') + '"><span class="ico">' + l.icon + '</span>' + l.label + '</a>';
-  }).join('') + '</nav>';
+  }).join('') + '</nav><a class="privacy-link" href="/privacy.html">Privacy</a>';
 
   const top = document.createElement('header');
   top.className = 'topbar';
   const account = signedIn
-    ? '<span class="who" title="' + esc(user.email) + '">' + esc(user.email.split('@')[0]) + ' <span class="badge finished">' + esc(user.role) + '</span></span><a href="#" id="logout-link">Log out</a>'
-    : '<a href="/signup.html">Sign up</a><a href="/login.html" class="btn small">Log in</a>';
+    ? (user.picture && /^https:\/\//.test(user.picture) ? '<img class="avatar" src="' + esc(user.picture) + '" alt="" referrerpolicy="no-referrer">' : '') +
+      '<span class="who">' + esc(user.name || user.email.split('@')[0]) + ' <span class="badge finished">' + esc(user.role) + '</span></span><a href="#" id="logout-link">Sign out</a>'
+    : '<a href="/login.html" class="btn small">Sign in</a>';
   top.innerHTML = '<button class="menu-btn secondary" id="menu-btn" aria-label="Menu">\u2630</button>' +
     '<div class="search"><input id="global-search" type="search" placeholder="Search teams, players, tournaments..." autocomplete="off" maxlength="50" aria-label="Search">' +
     '<div class="search-results" id="search-results" hidden></div></div><div class="account">' + account + '</div>';
