@@ -208,3 +208,31 @@ document.getElementById('user-form').addEventListener('submit', async function (
     e.target.reset();
   } catch (err) { showMsg(out, 'error', err.message); }
 });
+
+// ---- users and roles (admin only: emails are never shown anywhere else)
+async function loadUsers() {
+  const box = document.getElementById('users');
+  try {
+    const data = await api('GET', '/api/auth/users');
+    box.innerHTML = '<div class="card"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>' + data.users.map(function (u) {
+      const mine = u.email === user.email;
+      const options = ['fan', 'scorer', 'admin'].map(function (r) { return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + r + '</option>'; }).join('');
+      return '<tr><td>' + esc(u.name || '-') + '</td><td>' + esc(u.email) + '</td><td><select data-user="' + u.id + '"' + (mine ? ' disabled title="You cannot change your own role"' : '') + '>' + options + '</select></td></tr>';
+    }).join('') + '</tbody></table></div>';
+  } catch (err) {
+    box.innerHTML = '<div class="msg error">' + esc(err.message) + '</div>';
+  }
+}
+document.getElementById('users').addEventListener('change', async function (e) {
+  const sel = e.target.closest('select[data-user]');
+  if (!sel) return;
+  const out = document.getElementById('users-msg');
+  try {
+    const data = await api('PUT', '/api/auth/users/' + sel.dataset.user + '/role', { role: sel.value });
+    showMsg(out, 'success', data.user.email + ' is now ' + data.user.role + '.');
+  } catch (err) {
+    showMsg(out, 'error', err.message);
+    loadUsers();
+  }
+});
+if (user && user.role === 'admin') loadUsers();
