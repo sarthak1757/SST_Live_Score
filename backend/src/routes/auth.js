@@ -7,9 +7,15 @@ const { wrap, httpError } = require('../middleware/errors');
 
 const { createLimiter } = require('../services/rateLimit');
 const audit = require('../services/audit');
+const googleAuth = require('../services/googleAuth');
+const mongoose = require('mongoose');
 
 const router = express.Router();
-const signupPerIp = createLimiter(5, 60 * 60 * 1000); // 5 sign-ups per hour per IP
+const googlePerIp = createLimiter(20, 10 * 60 * 1000); // 20 Google sign-ins per 10 min per IP
+
+function publicUser(user) {
+  return { email: user.email, role: user.role, name: user.name || '', picture: user.picture || '' };
+}
 
 function issueToken(user) {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '12h' });
@@ -43,7 +49,7 @@ router.post(
     if (isLocked(key)) throw httpError(429, 'Too many failed attempts. Try again in a few minutes.');
     const user = await User.findOne({ email: email });
     // Same message for unknown email and wrong password so we don't reveal which accounts exist
-    const ok = user ? await bcrypt.compare(password, user.passwordHash) : false;
+    const ok = user && user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!ok) {
       recordFail(key);
       throw httpError(401, 'Invalid email or password');
@@ -51,22 +57,18 @@ router.post(
     delete failures[key];
 
     const token = issueToken(user);
-    res.json({ token: token, user: { email: user.email, role: user.role } });
+    res.json({ token: token, user: publicUser(user) });
   })
 );
 
-// POST /api/auth/signup { email, password } - public self sign-up, always creates a "fan"
+// POST /api/auth/google { credential } -> { token, user } - Google ID token from the browser
 router.post(
-  '/signup',
+  '/google',
   wrap(async (req, res) => {
-    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-    const password = typeof req.body.password === 'string' ? req.body.password : '';
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 100) throw httpError(400, 'Enter a valid email');
-    if (password.length < 8 || password.length > 100) throw httpError(400, 'Password must be 8-100 characters');
-    if (!signupPerIp(req.ip)) throw httpError(429, 'Too many sign-ups from this network. Try again later.');
-    if (await User.findOne({ email: email })) throw httpError(409, 'An account with this email already exists');
-    const user = await User.create({ email: email, passwordHash: await bcrypt.hash(password, 10), role: 'fan' });
-    res.status(201).json({ token: issueToken(user), user: { email: user.email, role: user.role } });
+    if (!googlePerIp(req.ip)) throw httpError(429, 'Too many sign-in attempts. Try again in a few minutes.');
+    const payload = await googleAuth.verifyCredential(req.body.credential);
+    const user = await googleAuth.signIn(payload, process.env, User);
+    res.json({ token: issueToken(user), user: publicUser(user) });
   })
 );
 
@@ -77,7 +79,7 @@ router.get(
   wrap(async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) throw httpError(401, 'Account no longer exists');
-    res.json({ user: { email: user.email, role: user.role } });
+    res.json({ user: publicUser(user) });
   })
 );
 
@@ -97,6 +99,34 @@ router.post(
     await User.create({ email: email, passwordHash: passwordHash, role: role });
     await audit.record(req, 'user.create', {}, { summary: email + ' (' + role + ')' });
     res.status(201).json({ user: { email: email, role: role } });
+  })
+);
+
+// GET /api/auth/users (admin) -> everyone with an account (emails are visible only here)
+router.get(
+  '/users',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    const users = await User.find().sort({ createdAt: 1 }).limit(500);
+    res.json({ users: users.map(function (u) { return { id: u._id, name: u.name || '', email: u.email, role: u.role }; }) });
+  })
+);
+
+// PUT /api/auth/users/:id/role (admin) { role: fan|scorer|admin } - admins cannot change their own role
+router.put(
+  '/users/:id/role',
+  requireAuth,
+  requireRole('admin'),
+  wrap(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) throw httpError(400, 'Invalid id');
+    const role = req.body.role;
+    if (['fan', 'scorer', 'admin'].indexOf(role) === -1) throw httpError(400, 'Role must be fan, scorer or admin');
+    if (req.params.id === req.user.id) throw httpError(400, 'You cannot change your own role');
+    const user = await User.findByIdAndUpdate(req.params.id, { role: role }, { returnDocument: 'after' });
+    if (!user) throw httpError(404, 'User not found');
+    await audit.record(req, 'user.role', {}, { summary: user.email + ' is now ' + role });
+    res.json({ user: { id: user._id, name: user.name || '', email: user.email, role: user.role } });
   })
 );
 

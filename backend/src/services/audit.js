@@ -3,6 +3,7 @@ const ACTIONS = {
   'tournament.create': 'Created tournament',
   'roster.update': 'Updated roster',
   'team.delete': 'Deleted team',
+  'user.role': 'Changed role',
   'tournament.delete': 'Deleted tournament',
   'roster.import': 'Imported roster',
   'bracket.semifinals': 'Generated semifinals',

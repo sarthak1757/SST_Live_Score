@@ -351,9 +351,10 @@ router.get(
 
 // ---------- Fan engagement ----------
 
-// POST /api/matches/:id/reactions (public) { type: fire|clap|wow, clientId }
+// POST /api/matches/:id/reactions (signed-in users) { type: fire|clap|wow, clientId }
 router.post(
   '/:id/reactions',
+  requireAuth,
   wrap(async (req, res) => {
     const type = engagement.validateReaction(req.body.type);
     const clientId = engagement.validateClientId(req.body.clientId);
