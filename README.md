@@ -94,6 +94,7 @@ package.json            root scripts only (start, seed, test) so Render settings
 | Method | Path | Access |
 |---|---|---|
 | POST | `/api/auth/login` | public |
+| GET | `/api/health` (`{ ok, db: up or down }`, handy as a Render health check) | public |
 | GET | `/api/matches?status=&sport=&tournament=` | public |
 | GET | `/api/matches/:id`, `/api/matches/:id/stream` (SSE) | public |
 | GET | `/api/tournaments`, `/api/tournaments/:id` (standings) | public |
